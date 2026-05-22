@@ -37,7 +37,8 @@ PanelWindow {
         const base = (Config.showBackground !== false) ? 44 : 40;
         return Config.bar?.position === "top" ? base : 0;
     }
-    readonly property int sideNotchOffset: 76
+    // Pegado al borde izquierdo (sin offset por el side notch — el panel
+    // queda sobre/detrás del notch). Width incluye el espacio del notch.
     readonly property int panelWidth: 400
 
     // Tabs
@@ -91,17 +92,22 @@ PanelWindow {
         anchors {
             top: parent.top
             bottom: parent.bottom
-            topMargin: chatPanel.barReserved + 12
-            bottomMargin: 12
+            left: parent.left
+            topMargin: chatPanel.barReserved
+            bottomMargin: 0
         }
 
-        x: chatPanel.sideNotchOffset
-
+        // Animación notch desde la izquierda: scale 0→1 desde Item.Left,
+        // x: 0 siempre (pegado). El panel se "extiende" hacia la derecha.
         scale: chatPanel.isOpen ? 1.0 : 0.0
         opacity: chatPanel.isOpen ? 1.0 : 0.0
         transformOrigin: Item.Left
 
-        radius: Styling.radius(20)
+        // Solo redondeado en la derecha (notch sticky al borde izq)
+        topLeftRadius: 0
+        bottomLeftRadius: 0
+        topRightRadius: Styling.radius(20)
+        bottomRightRadius: Styling.radius(20)
 
         layer.enabled: true
         layer.effect: Shadow {}
