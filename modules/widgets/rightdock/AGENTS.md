@@ -8,18 +8,22 @@ Panel full-height anclado al borde derecho que reemplaza el viejo `clockPopup`. 
 
 ```
 rightdock/
-├── RightDock.qml    ← PanelWindow anchors top/bottom/right
-└── ColorPicker.qml  ← HSV picker estilo Google
+├── RightDock.qml      ← PanelWindow anchors top/bottom/right
+├── DistroHeader.qml   ← Hero header con wallpaper/GIF + logo + nombre distro
+└── ColorPicker.qml    ← HSV picker estilo Google
 ```
 
 ## WHERE TO LOOK
 
 | Tarea | Ubicación | Notas |
 |---|---|---|
-| Cambiar ancho del dock | `RightDock.qml:dockWidth` | Default 360px |
-| Cambiar paddings internos | `RightDock.qml:hPadding/vPadding` | 14 / 16 |
+| Cambiar ancho del dock | `RightDock.qml:dockWidth` | Default 380px |
+| Cambiar altura del header | `RightDock.qml:headerHeight` | Default 150px |
+| Cambiar spacing entre secciones | `RightDock.qml:sectionSpacing` | Default 10px |
+| Cambiar GIF/imagen del header | `DistroHeader.qml:headerImage` (prop) | Default: wallpaper actual |
+| Detección del logo distro | `DistroHeader.qml:logoCheck` | Busca `/usr/share/pixmaps/<id>(-logo).{svg,png}` |
+| Calendario completo del mes | `RightDock.qml` grid 7×6 con `monthCells` | Nav con flechas + botón today (centro) |
 | Animación slide-in | `RightDock.qml:slideTransform` | `Translate` con OutCubic/InCubic |
-| Agregar/quitar secciones | `RightDock.qml` ColumnLayout dentro de ScrollView | Cada sección es un StyledRect "pane" |
 | Tamaño del cuadrado HSV | `ColorPicker.qml:svSquare` | `Layout.preferredHeight: width * 0.6` |
 | Swatches predefinidos | `ColorPicker.qml` Repeater de Flow | Material You roles |
 

@@ -28,11 +28,12 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
 
     readonly property bool isOpen: GlobalStates.rightDockOpen
-    readonly property int dockWidth: 360
-    readonly property int hPadding: 14
-    readonly property int vPadding: 16
+    readonly property int dockWidth: 380
+    readonly property int hPadding: 12
+    readonly property int vPadding: 0          // header come hasta el borde
+    readonly property int headerHeight: 150
+    readonly property int sectionSpacing: 10
 
-    // Reservar espacio para el bar superior
     readonly property int barReserved: {
         const enabled = (Config.bar && Config.bar.pinnedOnStartup !== undefined ? Config.bar.pinnedOnStartup : true);
         if (!enabled) return 0;
@@ -55,7 +56,6 @@ PanelWindow {
         visible: false
     }
 
-    // Contenedor animado
     Item {
         id: dockContainer
         width: dock.dockWidth
@@ -84,7 +84,6 @@ PanelWindow {
             }
         }
 
-        // Fondo único que engloba todo
         StyledRect {
             id: dockBg
             anchors.fill: parent
@@ -95,89 +94,39 @@ PanelWindow {
             bottomLeftRadius: Styling.radius(8)
             topRightRadius: 0
             bottomRightRadius: 0
+            clip: true
         }
 
         ScrollView {
             id: scroller
             anchors.fill: parent
-            anchors.leftMargin: dock.hPadding
-            anchors.rightMargin: dock.hPadding
-            anchors.topMargin: dock.vPadding
-            anchors.bottomMargin: dock.vPadding
             clip: true
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
             ColumnLayout {
                 width: scroller.width
-                spacing: 14
+                spacing: dock.sectionSpacing
 
-                // ── HEADER ──────────────────────────────────────
-                RowLayout {
+                // ── HEADER (full-bleed) ─────────────────────────
+                DistroHeader {
                     Layout.fillWidth: true
-                    spacing: 8
-
-                    Text {
-                        text: Qt.formatDateTime(headerClock.now, "dddd, d MMM")
-                        color: Colors.overBackground
-                        font.family: Config.theme.font
-                        font.pixelSize: Styling.fontSize(2)
-                        font.weight: Font.Medium
-                        Layout.fillWidth: true
-                    }
-
-                    Item {
-                        id: headerClock
-                        property var now: new Date()
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
-
-                        Timer {
-                            interval: 60000
-                            running: dock.isOpen
-                            repeat: true
-                            onTriggered: headerClock.now = new Date()
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 14
-                            color: closeHover.containsMouse ? Styling.srItem("focus") : "transparent"
-                            Behavior on color { ColorAnimation { duration: 120 } }
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            text: ""
-                            font.family: "MaterialSymbolsRounded"
-                            font.pixelSize: 18
-                            color: Colors.overBackground
-                        }
-                        MouseArea {
-                            id: closeHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: GlobalStates.rightDockOpen = false
-                        }
-                    }
+                    Layout.preferredHeight: dock.headerHeight
+                    Layout.topMargin: 0
                 }
 
-                // ── CALENDAR ────────────────────────────────────
+                // ── CALENDAR (full month) ──────────────────────
                 StyledRect {
                     id: calendarPane
                     Layout.fillWidth: true
+                    Layout.leftMargin: dock.hPadding
+                    Layout.rightMargin: dock.hPadding
                     variant: "pane"
                     radius: Styling.radius(6)
                     enableShadow: false
                     Layout.preferredHeight: calendarColumn.implicitHeight + 24
 
                     property date currentDate: new Date()
-                    property int currentDayOfWeek: (currentDate.getDay() + 6) % 7
-                    property date weekStart: {
-                        var d = new Date(currentDate);
-                        var day = d.getDay();
-                        var diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                        return new Date(d.setDate(diff));
-                    }
+                    property date viewDate: new Date()
 
                     Timer {
                         interval: 60000
@@ -186,76 +135,180 @@ PanelWindow {
                         onTriggered: calendarPane.currentDate = new Date()
                     }
 
+                    function isSameDay(a, b) {
+                        return a.getFullYear() === b.getFullYear()
+                            && a.getMonth() === b.getMonth()
+                            && a.getDate() === b.getDate();
+                    }
+
                     Column {
                         id: calendarColumn
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.left: parent.left
+                        anchors.right: parent.right
                         anchors.top: parent.top
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
                         anchors.topMargin: 12
-                        spacing: 6
+                        spacing: 8
 
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: {
-                                var m = calendarPane.currentDate.toLocaleDateString(Qt.locale(), "MMMM yyyy");
-                                return m.charAt(0).toUpperCase() + m.slice(1);
+                        // Month header con nav
+                        Item {
+                            width: parent.width
+                            height: 28
+
+                            Row {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: {
+                                        var m = calendarPane.viewDate.toLocaleDateString(Qt.locale(), "MMMM yyyy");
+                                        return m.charAt(0).toUpperCase() + m.slice(1);
+                                    }
+                                    color: Colors.overBackground
+                                    font.family: Config.theme.font
+                                    font.pixelSize: Styling.fontSize(1)
+                                    font.weight: Font.Medium
+                                }
                             }
-                            color: Colors.outline
-                            font.family: Config.theme.font
-                            font.pixelSize: Styling.fontSize(0)
-                            font.weight: Font.Medium
+
+                            Row {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                Repeater {
+                                    model: [
+                                        { ico: "", delta: -1 },
+                                        { ico: "", delta:  0 },
+                                        { ico: "", delta:  1 }
+                                    ]
+                                    Item {
+                                        id: navBtn
+                                        required property var modelData
+                                        width: 26
+                                        height: 26
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: 13
+                                            color: navMa.containsMouse ? Styling.srItem("focus") : "transparent"
+                                            Behavior on color { ColorAnimation { duration: 100 } }
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: navBtn.modelData.ico
+                                            font.family: "MaterialSymbolsRounded"
+                                            font.pixelSize: 16
+                                            color: Colors.overBackground
+                                        }
+                                        MouseArea {
+                                            id: navMa
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                if (navBtn.modelData.delta === 0) {
+                                                    calendarPane.viewDate = new Date();
+                                                } else {
+                                                    var d = new Date(calendarPane.viewDate);
+                                                    d.setMonth(d.getMonth() + navBtn.modelData.delta);
+                                                    calendarPane.viewDate = d;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
 
+                        // Día headers
                         Row {
-                            spacing: 4
+                            id: weekHeaderRow
+                            spacing: 2
+                            property real cellW: (calendarColumn.width - 6 * spacing) / 7
 
                             Repeater {
-                                model: 7
-
-                                Column {
-                                    id: dayColumn
+                                model: ["L", "M", "M", "J", "V", "S", "D"]
+                                Item {
+                                    required property var modelData
                                     required property int index
-                                    spacing: 4
-                                    width: (scroller.width - 28 - 6 * 4) / 7
-
-                                    property date dayDate: {
-                                        var d = new Date(calendarPane.weekStart);
-                                        d.setDate(d.getDate() + index);
-                                        return d;
-                                    }
-                                    property bool isToday: index === calendarPane.currentDayOfWeek
-
+                                    width: weekHeaderRow.cellW
+                                    height: 18
                                     Text {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        text: {
-                                            var dayName = dayColumn.dayDate.toLocaleDateString(Qt.locale(), "ddd");
-                                            return (dayName.charAt(0).toUpperCase() + dayName.slice(1, 2)).replace(".", "");
-                                        }
+                                        anchors.centerIn: parent
+                                        text: parent.modelData
                                         color: Colors.outline
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
                                         font.weight: Font.Medium
                                     }
+                                }
+                            }
+                        }
 
-                                    Item {
-                                        width: 28
-                                        height: 28
-                                        anchors.horizontalCenter: parent.horizontalCenter
+                        // Grid del mes (42 celdas)
+                        Grid {
+                            id: monthGrid
+                            columns: 7
+                            spacing: 2
+                            property real cellW: (calendarColumn.width - 6 * spacing) / 7
 
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            radius: 14
-                                            color: Styling.srItem("overprimary")
-                                            visible: dayColumn.isToday
-                                        }
+                            property var monthCells: {
+                                var view = calendarPane.viewDate;
+                                var first = new Date(view.getFullYear(), view.getMonth(), 1);
+                                var startWeekday = (first.getDay() + 6) % 7;  // Mon = 0
+                                var start = new Date(first);
+                                start.setDate(first.getDate() - startWeekday);
+                                var cells = [];
+                                for (var i = 0; i < 42; i++) {
+                                    var d = new Date(start);
+                                    d.setDate(start.getDate() + i);
+                                    cells.push({
+                                        date: d,
+                                        day: d.getDate(),
+                                        inMonth: d.getMonth() === view.getMonth(),
+                                        isToday: calendarPane.isSameDay(d, calendarPane.currentDate)
+                                    });
+                                }
+                                return cells;
+                            }
 
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: dayColumn.dayDate.getDate()
-                                            color: dayColumn.isToday ? Colors.background : Colors.overBackground
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(0)
-                                            font.weight: dayColumn.isToday ? Font.Bold : Font.Normal
-                                        }
+                            Repeater {
+                                model: monthGrid.monthCells
+
+                                Item {
+                                    required property var modelData
+                                    width: monthGrid.cellW
+                                    height: monthGrid.cellW
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.margins: 2
+                                        radius: width / 2
+                                        color: parent.modelData.isToday
+                                               ? Styling.srItem("overprimary")
+                                               : (cellHover.containsMouse ? Styling.srItem("focus") : "transparent")
+                                        Behavior on color { ColorAnimation { duration: 100 } }
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: parent.modelData.day
+                                        color: parent.modelData.isToday
+                                               ? Colors.background
+                                               : (parent.modelData.inMonth ? Colors.overBackground : Colors.outline)
+                                        opacity: parent.modelData.inMonth ? 1 : 0.45
+                                        font.family: Config.theme.font
+                                        font.pixelSize: Styling.fontSize(0)
+                                        font.weight: parent.modelData.isToday ? Font.Bold : Font.Normal
+                                    }
+
+                                    MouseArea {
+                                        id: cellHover
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
                                     }
                                 }
                             }
@@ -266,23 +319,25 @@ PanelWindow {
                 // ── WEATHER ─────────────────────────────────────
                 StyledRect {
                     Layout.fillWidth: true
+                    Layout.leftMargin: dock.hPadding
+                    Layout.rightMargin: dock.hPadding
                     variant: "pane"
                     radius: Styling.radius(6)
                     enableShadow: false
                     visible: WeatherService.dataAvailable
-                    Layout.preferredHeight: visible ? (weatherCol.implicitHeight + 16) : 0
+                    Layout.preferredHeight: visible ? (weatherCol.implicitHeight + 12) : 0
 
                     Column {
                         id: weatherCol
                         anchors.top: parent.top
                         anchors.left: parent.left
                         anchors.right: parent.right
-                        anchors.margins: 8
-                        spacing: 6
+                        anchors.margins: 6
+                        spacing: 4
 
                         WeatherWidget {
                             width: parent.width
-                            height: 140
+                            height: 130
                             showDebugControls: false
                             animationsEnabled: dock.isOpen
                         }
@@ -292,33 +347,39 @@ PanelWindow {
                 // ── POMODORO / START WORK ───────────────────────
                 StyledRect {
                     Layout.fillWidth: true
+                    Layout.leftMargin: dock.hPadding
+                    Layout.rightMargin: dock.hPadding
                     variant: "pane"
                     radius: Styling.radius(6)
                     enableShadow: false
-                    Layout.preferredHeight: pomo.implicitHeight + 16
+                    Layout.preferredHeight: pomo.implicitHeight + 12
 
                     Pomodoro {
                         id: pomo
                         anchors.centerIn: parent
-                        width: parent.width - 16
+                        width: parent.width - 12
                     }
                 }
 
                 // ── COLOR PICKER ────────────────────────────────
                 StyledRect {
                     Layout.fillWidth: true
+                    Layout.leftMargin: dock.hPadding
+                    Layout.rightMargin: dock.hPadding
                     variant: "pane"
                     radius: Styling.radius(6)
                     enableShadow: false
-                    Layout.preferredHeight: pickerCol.implicitHeight + 24
+                    Layout.preferredHeight: pickerCol.implicitHeight + 20
 
                     Column {
                         id: pickerCol
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: 12
-                        spacing: 8
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.topMargin: 10
+                        spacing: 6
 
                         Text {
                             text: "Color picker"
@@ -334,7 +395,10 @@ PanelWindow {
                     }
                 }
 
-                Item { Layout.preferredHeight: 4 }
+                Item {
+                    Layout.preferredHeight: 12
+                    Layout.fillWidth: true
+                }
             }
         }
     }
