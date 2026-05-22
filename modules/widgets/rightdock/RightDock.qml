@@ -30,14 +30,17 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
 
     readonly property bool isOpen: GlobalStates.rightDockOpen
+    // CRÍTICO: PanelWindow oculto cuando cerrado + animación terminó.
+    // Sin esto, intercepta todos los clicks del sistema.
+    visible: isOpen || dockContainer.opacity > 0.001
 
     // ── Geometría base ────────────────────────────────────────────
     // Ancho total del dock (parte ancha, debajo del bar)
-    readonly property int dockWidth: 480
+    readonly property int dockWidth: 420
     // Ancho de la "tira superior" — debe encajar con los iconos derechos del bar
-    readonly property int topStripWidth: 280
+    readonly property int topStripWidth: 240
     // Radio del hombro: curva donde el dock pasa de angosto (arriba) a ancho (abajo)
-    readonly property int shoulderR: 28
+    readonly property int shoulderR: 24
     // Radio del bottom-left para que el extremo inferior no quede cuadrado
     readonly property int bottomLeftR: Styling.radius(8)
 
@@ -107,16 +110,8 @@ PanelWindow {
             id: dockShape
             anchors.fill: parent
             antialiasing: true
-            layer.enabled: true
-            layer.samples: 8
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowBlur: 1.0
-                shadowVerticalOffset: 2
-                shadowHorizontalOffset: -2
-                shadowColor: Qt.rgba(0, 0, 0, 0.45)
-                shadowOpacity: 0.7
-            }
+            // Sin MultiEffect por ahora (rompe el render del Shape).
+            // Sombra: pendiente de re-agregar con DropShadow externo.
 
             readonly property real shoulderInset: dock.dockWidth - dock.topStripWidth
 
