@@ -100,7 +100,9 @@ Item {
         const identity = (player.identity || "").toLowerCase();
         if (dbusName.includes("spotify") || desktopEntry.includes("spotify") || identity.includes("spotify"))
             return Icons.spotify;
-        if (dbusName.includes("chromium") || dbusName.includes("chrome") || desktopEntry.includes("chromium") || desktopEntry.includes("chrome"))
+        if (dbusName.includes("chromium") || dbusName.includes("chrome") || dbusName.includes("brave")
+            || desktopEntry.includes("chromium") || desktopEntry.includes("chrome") || desktopEntry.includes("brave")
+            || identity.includes("brave"))
             return Icons.chromium;
         if (dbusName.includes("firefox") || desktopEntry.includes("firefox"))
             return Icons.firefox;
