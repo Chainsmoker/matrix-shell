@@ -249,17 +249,9 @@ Item {
 
         onEntered: {
             root.hovered = true;
-            // Only focus window on hover if it's in the current workspace
-            if (root.windowData) {
-                // Get current active workspace from AxctlService
-                let currentWorkspace = AxctlService.focusedMonitor?.activeWorkspace?.id;
-                let windowWorkspace = root.windowData?.workspace?.id;
-
-                // Only focus if the window is in the current workspace
-                if (currentWorkspace && windowWorkspace && currentWorkspace === windowWorkspace) {
-                    AxctlService.dispatch(`focuswindow address:${windowData.address}`);
-                }
-            }
+            // (Removido focuswindow on hover: causaba que Hyprland warpeara el cursor
+            //  a la posición real de la ventana al pasarle el mouse por encima en el
+            //  overview cuando la ventana estaba en la workspace activa.)
         }
         onExited: root.hovered = false
 
