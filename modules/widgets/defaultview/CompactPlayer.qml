@@ -18,6 +18,10 @@ Item {
     required property var player
     required property bool notchHovered
 
+    // Mostrar el reproductor cuando hay player activo, sin esperar hover.
+    // Cuando no hay player, este flag refleja el hover normal (igual que antes).
+    readonly property bool playerExpanded: compactPlayer.player !== null || compactPlayer.notchHovered
+
     onPlayerChanged: {
         if (!player) {
             positionSlider.value = 0;
@@ -140,7 +144,7 @@ Item {
             color: Colors.overBackground
             elide: Text.ElideRight
             visible: opacity > 0
-            opacity: (compactPlayer.notchHovered && compactPlayer.player) ? 0.0 : 1.0
+            opacity: (compactPlayer.playerExpanded && compactPlayer.player) ? 0.0 : 1.0
             horizontalAlignment: Text.AlignHCenter
             z: 5
 
@@ -204,12 +208,12 @@ Item {
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: (compactPlayer.player !== null || compactPlayer.notchHovered) ? 4 : 0
-            anchors.rightMargin: (compactPlayer.player !== null || compactPlayer.notchHovered) ? 4 : 0
-            spacing: (compactPlayer.player !== null && compactPlayer.notchHovered) ? 4 : 0
+            anchors.leftMargin: (compactPlayer.player !== null || compactPlayer.playerExpanded) ? 4 : 0
+            anchors.rightMargin: (compactPlayer.player !== null || compactPlayer.playerExpanded) ? 4 : 0
+            spacing: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? 4 : 0
             layer.enabled: true
             layer.effect: BgShadow {}
-            opacity: (compactPlayer.notchHovered && compactPlayer.player) ? 1.0 : 0.0
+            opacity: (compactPlayer.playerExpanded && compactPlayer.player) ? 1.0 : 0.0
             visible: opacity > 0
             Behavior on opacity {
                 enabled: Config.animDuration > 0
@@ -230,7 +234,7 @@ Item {
                 id: artworkContainer
                 Layout.preferredWidth: 24
                 Layout.preferredHeight: 24
-                visible: compactPlayer.notchHovered
+                visible: compactPlayer.playerExpanded
                 ClippingRectangle {
                     anchors.fill: parent
                     radius: compactPlayer.isPlaying ? Styling.radius(-8) : Styling.radius(-4)
@@ -249,7 +253,7 @@ Item {
                         anchors.fill: parent
                         source: artworkImage
                         // Only enable blur when there's content to blur (saves GPU)
-                        blurEnabled: (hasArtwork || wallpaperPath !== "") && compactPlayer.notchHovered
+                        blurEnabled: (hasArtwork || wallpaperPath !== "") && compactPlayer.playerExpanded
                         blurMax: 32
                         blur: 0.75
                         opacity: (hasArtwork || wallpaperPath !== "") ? 1.0 : 0.0 // Simplificado
@@ -265,7 +269,7 @@ Item {
                     StyledRect {
                         anchors.fill: parent
                         variant: "internalbg"
-                        opacity: ((hasArtwork || wallpaperPath !== "") && compactPlayer.notchHovered) ? 0.5 : 0.0
+                        opacity: ((hasArtwork || wallpaperPath !== "") && compactPlayer.playerExpanded) ? 0.5 : 0.0
                         radius: parent.radius
                         Behavior on opacity {
                             enabled: Config.animDuration > 0
@@ -284,7 +288,7 @@ Item {
                         color: playPauseHover.hovered ? ((hasArtwork || wallpaperPath !== "") ? Styling.srItem("overprimary") : Styling.srItem("overprimary")) : ((hasArtwork || wallpaperPath !== "") ? Colors.overBackground : Colors.overBackground)
                         font.pixelSize: 16
                         font.family: Icons.font
-                        opacity: (compactPlayer.player?.canPause ?? false) && compactPlayer.notchHovered ? 1.0 : 0.0
+                        opacity: (compactPlayer.player?.canPause ?? false) && compactPlayer.playerExpanded ? 1.0 : 0.0
                         scale: 1.0
                         layer.enabled: true
                         layer.effect: BgShadow {}
@@ -313,12 +317,12 @@ Item {
                         }
                         HoverHandler {
                             id: playPauseHover
-                            enabled: compactPlayer.player !== null && compactPlayer.notchHovered
+                            enabled: compactPlayer.player !== null && compactPlayer.playerExpanded
                         }
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: compactPlayer.player ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            enabled: compactPlayer.player !== null && compactPlayer.notchHovered
+                            enabled: compactPlayer.player !== null && compactPlayer.playerExpanded
                             onClicked: {
                                 playPauseBtn.scale = 1.1;
                                 compactPlayer.player?.togglePlaying();
@@ -342,11 +346,11 @@ Item {
                 font.pixelSize: 16
                 font.family: Icons.font
                 opacity: compactPlayer.player?.canGoPrevious ?? false ? 1.0 : 0.3
-                visible: compactPlayer.player !== null && compactPlayer.notchHovered && (compactPlayer.player?.canGoPrevious ?? false)
+                visible: compactPlayer.player !== null && compactPlayer.playerExpanded && (compactPlayer.player?.canGoPrevious ?? false)
                 clip: true
                 scale: 1.0
                 readonly property real naturalWidth: implicitWidth
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.notchHovered) ? naturalWidth : 0
+                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? naturalWidth : 0
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
@@ -394,10 +398,10 @@ Item {
                 id: positionSlider
                 Layout.fillWidth: true
                 Layout.preferredHeight: 4
-                Layout.leftMargin: compactPlayer.notchHovered ? 0 : 8
-                Layout.rightMargin: compactPlayer.notchHovered ? 0 : 8
+                Layout.leftMargin: compactPlayer.playerExpanded ? 0 : 8
+                Layout.rightMargin: compactPlayer.playerExpanded ? 0 : 8
                 player: compactPlayer.player
-                visible: compactPlayer.notchHovered
+                visible: compactPlayer.playerExpanded
                 hasArtwork: compactPlayer.hasArtwork || compactPlayer.wallpaperPath !== ""
             }
 
@@ -411,9 +415,9 @@ Item {
                 opacity: compactPlayer.player?.canGoNext ?? false ? 1.0 : 0.3
                 clip: true
                 scale: 1.0
-                visible: compactPlayer.notchHovered
+                visible: compactPlayer.playerExpanded
                 readonly property real naturalWidth: implicitWidth
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.notchHovered) ? naturalWidth : 0
+                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? naturalWidth : 0
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
@@ -485,9 +489,9 @@ Item {
                 }
                 clip: true
                 scale: 1.0
-                visible: compactPlayer.notchHovered
+                visible: compactPlayer.playerExpanded
                 readonly property real naturalWidth: implicitWidth
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.notchHovered) ? naturalWidth : 0
+                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? naturalWidth : 0
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
@@ -548,9 +552,9 @@ Item {
                 font.pixelSize: 20
                 font.family: Icons.font
                 verticalAlignment: Text.AlignVCenter
-                visible: compactPlayer.notchHovered
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.notchHovered) ? implicitWidth : 0
-                Layout.rightMargin: (compactPlayer.player !== null && compactPlayer.notchHovered) ? 4 : 0
+                visible: compactPlayer.playerExpanded
+                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? implicitWidth : 0
+                Layout.rightMargin: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? 4 : 0
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
