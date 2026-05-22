@@ -14,13 +14,7 @@ import qs.config
 PanelWindow {
     id: chatPanel
 
-    anchors {
-        top: true
-        bottom: true
-        left: true
-        right: true
-    }
-
+    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "ambxst:chatpanel"
@@ -30,16 +24,17 @@ PanelWindow {
     readonly property bool isOpen: GlobalStates.chatPanelOpen
     visible: isOpen || panel.opacity > 0.001
 
-    // Layout
-    readonly property int barReserved: {
-        const enabled = (Config.bar && Config.bar.pinnedOnStartup !== undefined ? Config.bar.pinnedOnStartup : true);
-        if (!enabled) return 0;
-        const base = (Config.showBackground !== false) ? 44 : 40;
-        return Config.bar?.position === "top" ? base : 0;
+    // Reservar dock/bar bottom
+    readonly property int bottomReserved: {
+        const isPinned = (Config.bar && Config.bar.pinnedOnStartup !== undefined ? Config.bar.pinnedOnStartup : true);
+        const barHeight = (Config.showBackground !== false) ? 44 : 40;
+        return (isPinned && Config.bar?.position === "bottom") ? barHeight : 0;
     }
-    // Pegado al borde izquierdo (sin offset por el side notch — el panel
-    // queda sobre/detrás del notch). Width incluye el espacio del notch.
-    readonly property int panelWidth: 400
+
+    // Panel dimensions — bottom sheet floating
+    readonly property int panelWidth: Math.min(720, screen.width - 80)
+    readonly property int panelHeight: Math.min(680, screen.height - 120)
+    readonly property int bottomGap: 20   // separación del borde inferior
 
     // Tabs
     property string activeTab: "chat"
@@ -62,11 +57,11 @@ PanelWindow {
         })
     }
 
-    // Backdrop muy sutil
+    // Backdrop más oscuro para focus en el panel
     Rectangle {
         anchors.fill: parent
         color: Colors.scrim
-        opacity: chatPanel.isOpen ? 0.30 : 0
+        opacity: chatPanel.isOpen ? 0.45 : 0
         visible: opacity > 0.001
 
         Behavior on opacity {
@@ -81,33 +76,24 @@ PanelWindow {
     }
 
     // =================================================================
-    // Panel principal — alto, anclado a la izquierda detrás del side notch
-    // Animación notch-style desde un punto chico
+    // Panel — floating bottom sheet, centrado horizontal
+    // Animación: scale desde Item.Bottom (pop up) + opacity fade
     // =================================================================
     StyledRect {
         id: panel
         variant: "bg"
         width: chatPanel.panelWidth
+        height: chatPanel.panelHeight
 
-        anchors {
-            top: parent.top
-            bottom: parent.bottom
-            left: parent.left
-            topMargin: chatPanel.barReserved
-            bottomMargin: 0
-        }
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: chatPanel.bottomReserved + chatPanel.bottomGap
 
-        // Animación notch desde la izquierda: scale 0→1 desde Item.Left,
-        // x: 0 siempre (pegado). El panel se "extiende" hacia la derecha.
         scale: chatPanel.isOpen ? 1.0 : 0.0
         opacity: chatPanel.isOpen ? 1.0 : 0.0
-        transformOrigin: Item.Left
+        transformOrigin: Item.Bottom   // crece desde abajo (animación pop-up)
 
-        // Solo redondeado en la derecha (notch sticky al borde izq)
-        topLeftRadius: 0
-        bottomLeftRadius: 0
-        topRightRadius: Styling.radius(20)
-        bottomRightRadius: Styling.radius(20)
+        radius: Styling.radius(24)
 
         layer.enabled: true
         layer.effect: Shadow {}
@@ -116,9 +102,9 @@ PanelWindow {
         Behavior on scale {
             enabled: Config.animDuration > 0
             NumberAnimation {
-                duration: Config.animDuration * 1.2
+                duration: Config.animDuration * 1.3
                 easing.type: chatPanel.isOpen ? Easing.OutBack : Easing.OutQuart
-                easing.overshoot: chatPanel.isOpen ? 1.15 : 1.0
+                easing.overshoot: chatPanel.isOpen ? 1.1 : 1.0
             }
         }
         Behavior on opacity {
@@ -137,37 +123,95 @@ PanelWindow {
             spacing: 0
 
             // ============================================================
-            // TAB BAR (top)
+            // HEADER — tab pills + close button
+            // ============================================================
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 60
+
+                // Grab handle visual (decorativo)
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 8
+                    width: 36
+                    height: 4
+                    radius: 2
+                    color: Colors.overSurfaceVariant
+                    opacity: 0.3
+                }
+
+                // Close button (top right)
+                Item {
+                    width: 32
+                    height: 32
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.topMargin: 14
+                    anchors.rightMargin: 16
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 16
+                        color: closeMouse.containsMouse
+                               ? Qt.alpha(Colors.overBackground, 0.10)
+                               : "transparent"
+                        Behavior on color {
+                            enabled: Config.animDuration > 0
+                            ColorAnimation { duration: Config.animDuration / 2 }
+                        }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "✕"
+                        font.pixelSize: 14
+                        color: Colors.overBackground
+                    }
+
+                    MouseArea {
+                        id: closeMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: GlobalStates.chatPanelOpen = false
+                    }
+                }
+            }
+
+            // ============================================================
+            // TAB BAR — pill flotante centrada
             // ============================================================
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 56
+                Layout.alignment: Qt.AlignHCenter
+                Layout.preferredWidth: tabsRow.implicitWidth + 8
+                Layout.preferredHeight: 44
+                Layout.bottomMargin: 12
+                radius: 22
                 color: Colors.surfaceContainerLow
 
                 RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
+                    id: tabsRow
+                    anchors.centerIn: parent
                     spacing: 4
 
                     Repeater {
                         model: chatPanel.tabs
                         delegate: Item {
                             required property var modelData
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.preferredHeight: 40
+                            Layout.preferredWidth: tabContent.implicitWidth + 24
+                            Layout.preferredHeight: 36
 
                             readonly property bool isActive: chatPanel.activeTab === modelData.id
 
                             Rectangle {
                                 anchors.fill: parent
-                                anchors.margins: 6
-                                radius: Styling.radius(12)
+                                anchors.margins: 2
+                                radius: 18
                                 color: parent.isActive
                                        ? Colors.primary
                                        : (tabMouse.containsMouse
-                                          ? Qt.alpha(Colors.primary, 0.15)
+                                          ? Qt.alpha(Colors.primary, 0.18)
                                           : "transparent")
                                 Behavior on color {
                                     enabled: Config.animDuration > 0
@@ -176,13 +220,14 @@ PanelWindow {
                             }
 
                             RowLayout {
+                                id: tabContent
                                 anchors.centerIn: parent
                                 spacing: 6
 
                                 Text {
                                     text: parent.parent.modelData.icon
                                     font.family: Icons.font
-                                    font.pixelSize: 16
+                                    font.pixelSize: 14
                                     color: parent.parent.isActive
                                            ? Styling.srItem("overprimary")
                                            : Colors.overBackground
@@ -196,7 +241,6 @@ PanelWindow {
                                     color: parent.parent.isActive
                                            ? Styling.srItem("overprimary")
                                            : Colors.overBackground
-                                    visible: chatPanel.panelWidth > 320
                                 }
                             }
 
@@ -213,51 +257,9 @@ PanelWindow {
             }
 
             // ============================================================
-            // MODEL SELECTOR (under tabs, only for chat)
-            // ============================================================
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: chatPanel.activeTab === "chat" ? 44 : 0
-                visible: chatPanel.activeTab === "chat"
-                color: Colors.surfaceContainer
-                clip: true
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 16
-                    anchors.rightMargin: 16
-                    spacing: 8
-
-                    Text {
-                        text: Icons.sparkle
-                        font.family: Icons.font
-                        font.pixelSize: 14
-                        color: Colors.primary
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: "Claude 3.7 Sonnet"
-                        font.family: Config.theme.font
-                        font.pixelSize: Styling.fontSize(-1)
-                        font.bold: true
-                        color: Colors.overBackground
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        text: "▼"
-                        font.pixelSize: 10
-                        color: Colors.overSurfaceVariant
-                    }
-                }
-            }
-
-            // ============================================================
-            // CONTENIDO DEL TAB ACTIVO
+            // CONTENIDO DEL TAB
             // ============================================================
             StackLayout {
-                id: contentStack
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 currentIndex: {
@@ -271,89 +273,115 @@ PanelWindow {
                 }
 
                 // -------- TAB CHAT --------
-                ScrollView {
-                    clip: true
-                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
-
+                Item {
                     ColumnLayout {
-                        width: parent.width
-                        spacing: 10
+                        anchors.fill: parent
+                        anchors.leftMargin: 32
+                        anchors.rightMargin: 32
+                        spacing: 0
 
-                        Item { Layout.preferredHeight: 24 }
-
-                        // Bienvenida grande tipo end-4
+                        // Welcome card grande (tipo end-4)
                         ColumnLayout {
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.topMargin: 16
-                            spacing: 12
+                            Layout.topMargin: 24
+                            Layout.bottomMargin: 8
+                            spacing: 16
 
-                            Rectangle {
+                            // Avatar grande con halo
+                            Item {
                                 Layout.alignment: Qt.AlignHCenter
-                                width: 72
-                                height: 72
-                                radius: 36
-                                color: Colors.primaryContainer
+                                width: 96
+                                height: 96
 
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 48
+                                    color: Qt.alpha(Colors.primary, 0.15)
+                                }
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 76
+                                    height: 76
+                                    radius: 38
+                                    color: Colors.primaryContainer
+                                }
                                 Text {
                                     anchors.centerIn: parent
                                     text: Icons.robot
                                     font.family: Icons.font
-                                    font.pixelSize: 36
+                                    font.pixelSize: 40
                                     color: Colors.primary
                                 }
                             }
 
-                            Text {
+                            ColumnLayout {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: "Ambxst Assistant"
-                                font.family: Config.theme.font
-                                font.pixelSize: Styling.fontSize(2)
-                                font.bold: true
-                                color: Colors.overBackground
-                            }
+                                spacing: 6
 
-                            Text {
-                                Layout.alignment: Qt.AlignHCenter
-                                Layout.maximumWidth: panel.width - 60
-                                text: "Configurá tu API key para empezar"
-                                horizontalAlignment: Text.AlignHCenter
-                                wrapMode: Text.WordWrap
-                                font.family: Config.theme.font
-                                font.pixelSize: Styling.fontSize(-1)
-                                color: Colors.overSurfaceVariant
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "Ambxst Assistant"
+                                    font.family: Config.theme.font
+                                    font.pixelSize: Styling.fontSize(3)
+                                    font.bold: true
+                                    color: Colors.overBackground
+                                }
+
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: "Configurá tu API key para empezar"
+                                    font.family: Config.theme.font
+                                    font.pixelSize: Styling.fontSize(0)
+                                    color: Colors.overSurfaceVariant
+                                }
                             }
                         }
 
-                        // Action chips
+                        // Chips de acciones rápidas
                         Flow {
                             Layout.fillWidth: true
-                            Layout.leftMargin: 16
-                            Layout.rightMargin: 16
-                            Layout.topMargin: 16
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: 18
                             spacing: 8
 
                             Repeater {
-                                model: ["Saludá", "Resumí algo", "Explicame...", "Tradúceme"]
+                                model: [
+                                    { icon: Icons.sparkle, text: "Saludá" },
+                                    { icon: Icons.note,    text: "Resumí esto" },
+                                    { icon: Icons.gear,    text: "Configurar" },
+                                    { icon: Icons.user,    text: "Sobre mí" }
+                                ]
                                 delegate: Rectangle {
-                                    required property string modelData
-                                    width: chipText.implicitWidth + 24
-                                    height: 30
-                                    radius: 15
+                                    required property var modelData
+                                    width: chipRow.implicitWidth + 28
+                                    height: 36
+                                    radius: 18
                                     color: chipMouse.containsMouse
-                                           ? Qt.alpha(Colors.primary, 0.18)
+                                           ? Qt.alpha(Colors.primary, 0.20)
                                            : Colors.surfaceContainer
                                     Behavior on color {
                                         enabled: Config.animDuration > 0
                                         ColorAnimation { duration: Config.animDuration / 2 }
                                     }
 
-                                    Text {
-                                        id: chipText
+                                    RowLayout {
+                                        id: chipRow
                                         anchors.centerIn: parent
-                                        text: parent.modelData
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(-1)
-                                        color: Colors.overBackground
+                                        spacing: 8
+
+                                        Text {
+                                            text: parent.parent.modelData.icon
+                                            font.family: Icons.font
+                                            font.pixelSize: 13
+                                            color: Colors.primary
+                                        }
+
+                                        Text {
+                                            text: parent.parent.modelData.text
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            color: Colors.overBackground
+                                        }
                                     }
 
                                     MouseArea {
@@ -366,57 +394,229 @@ PanelWindow {
                             }
                         }
 
-                        Item { Layout.preferredHeight: 24 }
+                        Item { Layout.fillHeight: true }
 
-                        // Bubbles de ejemplo
-                        Row {
-                            Layout.leftMargin: 12
-                            Layout.maximumWidth: panel.width - 40
-                            Rectangle {
-                                width: Math.min(botMsg.implicitWidth + 28, panel.width - 60)
-                                height: botMsg.implicitHeight + 18
+                        // Model footer info
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Layout.bottomMargin: 12
+                            spacing: 8
+
+                            Item { Layout.fillWidth: true }
+
+                            Text {
+                                text: Icons.sparkle
+                                font.family: Icons.font
+                                font.pixelSize: 11
+                                color: Colors.overSurfaceVariant
+                            }
+
+                            Text {
+                                text: "Claude 3.7 Sonnet · sin API key"
+                                font.family: Config.theme.font
+                                font.pixelSize: Styling.fontSize(-2)
+                                color: Colors.overSurfaceVariant
+                            }
+
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+                }
+
+                // -------- TAB HISTORY --------
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 32
+                        spacing: 12
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "📋"
+                            font.pixelSize: 40
+                            opacity: 0.4
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "Sin conversaciones aún"
+                            font.family: Config.theme.font
+                            font.pixelSize: Styling.fontSize(0)
+                            color: Colors.overSurfaceVariant
+                        }
+
+                        Item { Layout.fillHeight: true }
+                    }
+                }
+
+                // -------- TAB MODELS --------
+                ScrollView {
+                    clip: true
+
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 8
+
+                        Item { Layout.preferredHeight: 8 }
+
+                        Repeater {
+                            model: [
+                                { name: "Claude 3.7 Sonnet",  provider: "Anthropic",  active: true },
+                                { name: "Claude 3.5 Haiku",   provider: "Anthropic",  active: false },
+                                { name: "GPT-4o",             provider: "OpenAI",     active: false },
+                                { name: "Llama 3.3 70B",      provider: "Meta",       active: false },
+                                { name: "Gemini 2.0 Flash",   provider: "Google",     active: false }
+                            ]
+
+                            delegate: Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.leftMargin: 24
+                                Layout.rightMargin: 24
+                                Layout.preferredHeight: 56
                                 radius: Styling.radius(14)
-                                topLeftRadius: 4
-                                color: Colors.surfaceContainer
+                                color: modelData.active
+                                       ? Qt.alpha(Colors.primary, 0.15)
+                                       : (modelMouse.containsMouse
+                                          ? Colors.surfaceContainer
+                                          : "transparent")
+                                Behavior on color {
+                                    enabled: Config.animDuration > 0
+                                    ColorAnimation { duration: Config.animDuration / 2 }
+                                }
 
-                                Text {
-                                    id: botMsg
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 14
-                                    text: "Hola, ¿en qué puedo ayudarte?"
-                                    wrapMode: Text.WordWrap
-                                    color: Colors.overBackground
-                                    font.family: Config.theme.font
-                                    font.pixelSize: Styling.fontSize(-1)
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 16
+                                    anchors.rightMargin: 16
+                                    spacing: 12
+
+                                    Rectangle {
+                                        Layout.preferredWidth: 36
+                                        Layout.preferredHeight: 36
+                                        radius: 18
+                                        color: parent.parent.modelData.active
+                                               ? Colors.primary
+                                               : Colors.surfaceContainer
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: Icons.sparkle
+                                            font.family: Icons.font
+                                            font.pixelSize: 14
+                                            color: parent.parent.parent.modelData.active
+                                                   ? Styling.srItem("overprimary")
+                                                   : Colors.overSurfaceVariant
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+
+                                        Text {
+                                            text: parent.parent.parent.modelData.name
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(0)
+                                            font.bold: parent.parent.parent.modelData.active
+                                            color: Colors.overBackground
+                                        }
+
+                                        Text {
+                                            text: parent.parent.parent.modelData.provider
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            color: Colors.overSurfaceVariant
+                                        }
+                                    }
+
+                                    Text {
+                                        visible: parent.parent.modelData.active
+                                        text: "✓"
+                                        font.pixelSize: 16
+                                        color: Colors.primary
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: modelMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
                                 }
                             }
                         }
 
-                        Row {
-                            Layout.alignment: Qt.AlignRight
-                            Layout.rightMargin: 12
-                            Rectangle {
-                                width: Math.min(userMsg.implicitWidth + 28, panel.width - 60)
-                                height: userMsg.implicitHeight + 18
-                                radius: Styling.radius(14)
-                                topRightRadius: 4
-                                color: Colors.primary
+                        Item { Layout.preferredHeight: 8 }
+                    }
+                }
 
-                                Text {
-                                    id: userMsg
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 14
-                                    text: "Testing la UI"
-                                    wrapMode: Text.WordWrap
-                                    color: Styling.srItem("overprimary")
-                                    font.family: Config.theme.font
-                                    font.pixelSize: Styling.fontSize(-1)
+                // -------- TAB CONFIG --------
+                Item {
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 24
+                        anchors.rightMargin: 24
+                        anchors.topMargin: 16
+                        spacing: 12
+
+                        Text {
+                            text: "API Keys"
+                            font.family: Config.theme.font
+                            font.pixelSize: Styling.fontSize(1)
+                            font.bold: true
+                            color: Colors.overBackground
+                        }
+
+                        Repeater {
+                            model: ["Anthropic", "OpenAI", "Google", "OpenRouter"]
+                            delegate: Rectangle {
+                                required property string modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 56
+                                radius: Styling.radius(14)
+                                color: Colors.surfaceContainer
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 16
+                                    anchors.rightMargin: 16
+                                    spacing: 10
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 2
+
+                                        Text {
+                                            text: parent.parent.modelData
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(0)
+                                            font.bold: true
+                                            color: Colors.overBackground
+                                        }
+
+                                        Text {
+                                            text: "no configurada"
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            color: Colors.overSurfaceVariant
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        Layout.preferredWidth: 80
+                                        Layout.preferredHeight: 32
+                                        radius: 16
+                                        color: Colors.primary
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Setear"
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            color: Styling.srItem("overprimary")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -424,151 +624,48 @@ PanelWindow {
                         Item { Layout.fillHeight: true }
                     }
                 }
-
-                // -------- TAB HISTORY --------
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 0
-
-                    Item { Layout.preferredHeight: 24 }
-
-                    Text {
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "Sin conversaciones aún"
-                        font.family: Config.theme.font
-                        font.pixelSize: Styling.fontSize(0)
-                        color: Colors.overSurfaceVariant
-                    }
-
-                    Item { Layout.fillHeight: true }
-                }
-
-                // -------- TAB MODELS --------
-                ColumnLayout {
-                    spacing: 8
-
-                    Item { Layout.preferredHeight: 16 }
-
-                    Repeater {
-                        model: ["Claude 3.7 Sonnet", "Claude 3.5 Haiku", "GPT-4o", "Llama 3.3 70B"]
-                        delegate: Rectangle {
-                            required property string modelData
-                            required property int index
-                            Layout.fillWidth: true
-                            Layout.leftMargin: 16
-                            Layout.rightMargin: 16
-                            Layout.preferredHeight: 44
-                            radius: Styling.radius(12)
-                            color: index === 0
-                                   ? Qt.alpha(Colors.primary, 0.15)
-                                   : "transparent"
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 14
-                                anchors.rightMargin: 14
-                                spacing: 10
-
-                                Text {
-                                    text: Icons.sparkle
-                                    font.family: Icons.font
-                                    font.pixelSize: 14
-                                    color: parent.parent.index === 0 ? Colors.primary : Colors.overSurfaceVariant
-                                }
-
-                                Text {
-                                    text: parent.parent.modelData
-                                    Layout.fillWidth: true
-                                    font.family: Config.theme.font
-                                    font.pixelSize: Styling.fontSize(-1)
-                                    font.bold: parent.parent.index === 0
-                                    color: Colors.overBackground
-                                }
-                            }
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-                }
-
-                // -------- TAB CONFIG --------
-                ColumnLayout {
-                    spacing: 8
-
-                    Item { Layout.preferredHeight: 16 }
-
-                    Text {
-                        Layout.leftMargin: 20
-                        text: "API Keys"
-                        font.family: Config.theme.font
-                        font.pixelSize: Styling.fontSize(0)
-                        font.bold: true
-                        color: Colors.overBackground
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.leftMargin: 16
-                        Layout.rightMargin: 16
-                        Layout.preferredHeight: 44
-                        radius: Styling.radius(12)
-                        color: Colors.surfaceContainer
-
-                        Text {
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            verticalAlignment: Text.AlignVCenter
-                            text: "Anthropic: no configurada"
-                            font.family: Config.theme.font
-                            font.pixelSize: Styling.fontSize(-1)
-                            color: Colors.overSurfaceVariant
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-                }
             }
 
             // ============================================================
-            // INPUT BAR (solo para chat)
+            // INPUT BAR (solo chat)
             // ============================================================
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: chatPanel.activeTab === "chat" ? 64 : 0
+                Layout.preferredHeight: chatPanel.activeTab === "chat" ? 76 : 0
                 visible: chatPanel.activeTab === "chat"
                 color: Colors.surfaceContainerLow
                 clip: true
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 14
-                    anchors.rightMargin: 10
-                    anchors.topMargin: 10
-                    anchors.bottomMargin: 10
-                    spacing: 8
+                    anchors.leftMargin: 20
+                    anchors.rightMargin: 16
+                    anchors.topMargin: 12
+                    anchors.bottomMargin: 16
+                    spacing: 10
 
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        radius: Styling.radius(22)
+                        radius: Styling.radius(24)
                         color: Colors.surfaceContainerHigh
 
                         TextInput {
                             id: chatInput
                             anchors.fill: parent
-                            anchors.leftMargin: 18
-                            anchors.rightMargin: 18
+                            anchors.leftMargin: 20
+                            anchors.rightMargin: 20
                             verticalAlignment: TextInput.AlignVCenter
                             color: Colors.overBackground
                             font.family: Config.theme.font
-                            font.pixelSize: Styling.fontSize(-1)
+                            font.pixelSize: Styling.fontSize(0)
                             clip: true
                             selectByMouse: true
 
                             Text {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
-                                text: "Escribí un mensaje..."
+                                text: "Mandale un mensaje a Ambxst..."
                                 color: Colors.overSurfaceVariant
                                 opacity: chatInput.text.length === 0 ? 0.55 : 0
                                 font: chatInput.font
@@ -577,12 +674,12 @@ PanelWindow {
                     }
 
                     Item {
-                        Layout.preferredWidth: 44
-                        Layout.preferredHeight: 44
+                        Layout.preferredWidth: 48
+                        Layout.preferredHeight: 48
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 22
+                            radius: 24
                             color: sendMouse.containsMouse
                                    ? Qt.lighter(Colors.primary, 1.1)
                                    : Colors.primary
@@ -596,7 +693,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: Icons.arrowUp
                             font.family: Icons.font
-                            font.pixelSize: 20
+                            font.pixelSize: 22
                             color: Styling.srItem("overprimary")
                         }
 
@@ -606,7 +703,7 @@ PanelWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                console.log("ChatPanel: send", chatInput.text);
+                                console.log("ChatPanel send:", chatInput.text);
                                 chatInput.text = "";
                             }
                         }
