@@ -158,9 +158,6 @@ PanelWindow {
                 item: notchContent.notchHitbox
             },
             Region {
-                item: leftNotch.hitbox
-            },
-            Region {
                 // Only include the dock hitbox if the dock is actually enabled and visible on this screen.
                 item: dockContent.visible ? dockContent.dockHitbox : null
             },
@@ -245,13 +242,6 @@ PanelWindow {
             z: 4
         }
 
-        LeftNotch {
-            id: leftNotch
-            unifiedEffectActive: unifiedPanel.unifiedEffectActive
-            anchors.fill: parent
-            screen: unifiedPanel.targetScreen
-            z: 4
-        }
 
         AssistantSidebar {
             id: assistantSidebar

@@ -9,15 +9,9 @@ ToggleButton {
     iconTint: Config.bar.launcherIconTint
     iconFullTint: Config.bar.launcherIconFullTint
     iconSize: Config.bar.launcherIconSize
-    tooltipText: "Open Launcher"
+    tooltipText: "Open News & Security"
 
     onToggle: function () {
-        if (GlobalStates.launcherOpen) {
-            GlobalStates.clearLauncherState();
-            Visibilities.setActiveModule("");
-        } else {
-            GlobalStates.clearLauncherState();
-            Visibilities.setActiveModule("launcher");
-        }
+        GlobalStates.newsPanelOpen = !GlobalStates.newsPanelOpen;
     }
 }
