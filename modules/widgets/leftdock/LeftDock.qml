@@ -422,7 +422,7 @@ PanelWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: tabPills.bottom
-            anchors.topMargin: 4
+            anchors.topMargin: 16
             anchors.bottom: parent.bottom
             width: dock.dockWidth
             clip: true
@@ -434,30 +434,22 @@ PanelWindow {
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 onWheel: (event) => {
                     var flick = scroller.contentItem;
-                    var scrollStep = event.angleDelta.y * 3.5;
+                    var scrollStep = event.angleDelta.y * 2.2;
                     flick.contentY = Math.max(0, Math.min(flick.contentHeight - flick.height, flick.contentY - scrollStep));
                     event.accepted = true;
                 }
             }
 
-            Item {
+            Column {
                 id: contentStack
                 x: 12
                 width: scroller.width - 24
-                height: implicitHeight
-                implicitHeight: {
-                    switch (dock.currentTab) {
-                        case 0: return techColumn.implicitHeight;
-                        case 1: return cveColumn.implicitHeight;
-                        case 2: return redditColumn.implicitHeight;
-                        default: return 0;
-                    }
-                }
+                spacing: 0
 
                     // Tab 0: Tech News
                     ColumnLayout {
                         id: techColumn
-                        Layout.fillWidth: true
+                        width: parent.width
                         spacing: 12
                         visible: dock.currentTab === 0
 
@@ -481,7 +473,7 @@ PanelWindow {
                     // Tab 1: Latest CVEs
                     ColumnLayout {
                         id: cveColumn
-                        Layout.fillWidth: true
+                        width: parent.width
                         spacing: 12
                         visible: dock.currentTab === 1
 
@@ -631,7 +623,7 @@ PanelWindow {
                     // Tab 2: Reddit Updates
                     ColumnLayout {
                         id: redditColumn
-                        Layout.fillWidth: true
+                        width: parent.width
                         spacing: 12
                         visible: dock.currentTab === 2
 
