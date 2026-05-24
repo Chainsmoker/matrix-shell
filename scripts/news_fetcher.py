@@ -147,15 +147,57 @@ def get_cves():
     
     formatted = []
     for item in raw_data:
-        score_val = item.get("cvss")
-        if score_val is None:
-            score_val = 5.0
-        else:
-            try:
-                score_val = float(score_val)
-            except ValueError:
-                score_val = 5.0
+        if "document" in item:
+            # CSAF Document format (e.g. Red Hat Advisories)
+            doc = item["document"]
+            cve_id = doc.get("tracking", {}).get("id") or "Advisory"
+            
+            # Find description in notes
+            description = ""
+            notes = doc.get("notes", [])
+            for note in notes:
+                if note.get("category") in ("summary", "general"):
+                    text = note.get("text", "")
+                    if text:
+                        description = text
+                        break
+            if not description and doc.get("title"):
+                description = doc.get("title")
+            if not description:
+                description = "Red Hat Security Advisory."
                 
+            # Truncate description if too long
+            if len(description) > 200:
+                description = description[:200] + "..."
+                
+            # Determine score from aggregate_severity
+            sev_text = doc.get("aggregate_severity", {}).get("text", "").lower()
+            if "critical" in sev_text:
+                score_val = 9.5
+            elif "important" in sev_text or "high" in sev_text:
+                score_val = 8.0
+            elif "moderate" in sev_text or "medium" in sev_text:
+                score_val = 5.5
+            elif "low" in sev_text:
+                score_val = 2.5
+            else:
+                score_val = 5.0
+        else:
+            # Standard OSV/CVE format
+            cve_id = item.get("id", "CVE-Unknown")
+            description = item.get("summary") or item.get("details") or "No description provided."
+            if len(description) > 200:
+                description = description[:200] + "..."
+                
+            score_val = item.get("cvss")
+            if score_val is None:
+                score_val = 5.0
+            else:
+                try:
+                    score_val = float(score_val)
+                except ValueError:
+                    score_val = 5.0
+                    
         if score_val >= 9.0:
             severity = "CRITICAL"
             color = "#E07556"
@@ -173,11 +215,11 @@ def get_cves():
             color = "#7f8fa6"
             
         formatted.append({
-            "cve": item.get("id", "CVE-Unknown"),
+            "cve": cve_id,
             "severity": severity,
             "score": f"{score_val:.1f}",
             "color": color,
-            "description": item.get("summary", "No description provided.")
+            "description": description
         })
     return formatted
 

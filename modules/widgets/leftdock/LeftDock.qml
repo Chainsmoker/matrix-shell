@@ -501,20 +501,14 @@ PanelWindow {
                                         layer.enabled: true
                                         layer.effect: MultiEffect {
                                             maskEnabled: true
-                                            maskSource: cveMaskShape
-                                        }
-
-                                        Item {
-                                            id: cveMaskShape
-                                            anchors.fill: parent
-                                            visible: false
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                topLeftRadius: 16
-                                                topRightRadius: 16
-                                                bottomLeftRadius: 0
-                                                bottomRightRadius: 0
-                                                color: "black"
+                                            maskSource: ShaderEffectSource {
+                                                sourceItem: Rectangle {
+                                                    width: cveHeaderArea.width
+                                                    height: cveHeaderArea.height
+                                                    topLeftRadius: 16
+                                                    topRightRadius: 16
+                                                    color: "black"
+                                                }
                                             }
                                         }
 
@@ -663,20 +657,14 @@ PanelWindow {
                     layer.enabled: true
                     layer.effect: MultiEffect {
                         maskEnabled: true
-                        maskSource: imageMaskShape
-                    }
-
-                    Item {
-                        id: imageMaskShape
-                        anchors.fill: parent
-                        visible: false
-                        Rectangle {
-                            anchors.fill: parent
-                            topLeftRadius: 16
-                            topRightRadius: 16
-                            bottomLeftRadius: 0
-                            bottomRightRadius: 0
-                            color: "black"
+                        maskSource: ShaderEffectSource {
+                            sourceItem: Rectangle {
+                                width: imageArea.width
+                                height: imageArea.height
+                                topLeftRadius: 16
+                                topRightRadius: 16
+                                color: "black"
+                            }
                         }
                     }
 
