@@ -113,74 +113,51 @@ def parse_relative_time(published_at):
         return "recently"
 
 def get_tech_news():
-    """Fetch latest technology news from Google News RSS."""
-    import xml.etree.ElementTree as ET
-    import email.utils
-    import datetime
-
-    # Technology News RSS
-    url = "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en"
+    """Fetch latest technology headlines from NewsAPI.org."""
+    api_key = "c3781d47f5fd4b7daaa86e0c023d47e4"
+    url = f"https://newsapi.org/v2/top-headlines?category=technology&language=en&pageSize=30&apiKey={api_key}"
+    raw_data = fetch_json(url)
     
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": USER_AGENT}
-    )
-    with urllib.request.urlopen(req, timeout=10) as response:
-        xml_data = response.read()
-        
-    root_xml = ET.fromstring(xml_data)
-    items = root_xml.findall(".//item")
-    
+    articles = raw_data.get("articles", [])
     formatted = []
-    for item in items[:30]:
-        title_raw = item.find("title").text or ""
-        link = item.find("link").text or ""
-        pub_date = item.find("pubDate").text or ""
-        source_elem = item.find("source")
-        source_name = source_elem.text if source_elem is not None else "Google News"
+    
+    for item in articles:
+        title = item.get("title", "")
+        source_elem = item.get("source", {}) or {}
+        source_name = source_elem.get("name", "Tech News")
         
-        # Parse title and strip source suffix if present
-        title = title_raw
-        if " - " in title_raw:
-            parts = title_raw.rsplit(" - ", 1)
+        # Clean source suffix from title if present
+        if title and " - " in title:
+            parts = title.rsplit(" - ", 1)
             if len(parts) == 2 and parts[1].strip().lower() == source_name.strip().lower():
                 title = parts[0].strip()
                 
-        # Parse relative time from RFC 822 format
-        rel_time = "recently"
-        try:
-            parsed = email.utils.parsedate_to_datetime(pub_date)
-            now_dt = datetime.datetime.now(datetime.timezone.utc)
-            diff = now_dt - parsed
-            seconds = diff.total_seconds()
-            if seconds < 60:
-                rel_time = "just now"
-            elif seconds < 3600:
-                rel_time = f"{int(seconds / 60)}m ago"
-            elif seconds < 86400:
-                rel_time = f"{int(seconds / 3600)}h ago"
-            else:
-                rel_time = f"{int(seconds / 86400)}d ago"
-        except Exception:
-            pass
-            
+        pub_date = item.get("publishedAt", "")
+        rel_time = parse_relative_time(pub_date)
         source_str = f"{source_name} · {rel_time}"
         
-        # Derive a short, clean tag from the source name
+        img_url = item.get("urlToImage") or ""
+        local_img = download_image(img_url) if img_url else ""
+        
+        excerpt = item.get("description") or item.get("content") or "Read the full coverage online."
+        if len(excerpt) > 200:
+            excerpt = excerpt[:200] + "..."
+            
+        # Short tag based on source name
         clean_tag = source_name.strip()
         if clean_tag.lower().startswith("the "):
             clean_tag = clean_tag[4:]
         first_word = clean_tag.split()[0] if clean_tag.split() else "Tech"
-        tag = first_word[:12] # Truncate to ensure it fits the UI card
+        tag = first_word[:12]
         
         formatted.append({
             "title": title,
             "source": source_str,
             "tag": tag,
             "tagColor": get_tag_color(tag),
-            "image": "", # Fallback to QML generated gradient
-            "excerpt": f"Read the full article coverage directly on {source_name}.",
-            "url": link
+            "image": local_img,
+            "excerpt": excerpt,
+            "url": item.get("url", "")
         })
     return formatted
 
