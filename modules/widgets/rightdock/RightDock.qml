@@ -39,7 +39,7 @@ PanelWindow {
     readonly property int headerHeight: 150
     readonly property int sectionSpacing: 10
     // Tamaño del hombro cóncavo (bottom-left del dock y top-left de la franja del bar)
-    readonly property int shoulderSize: 18
+    readonly property int shoulderSize: Config.roundness > 0 ? Config.roundness + 28 : 44
 
     // Tab activa: 0=Calendar, 1=Weather, 2=Pomodoro, 3=ColorPicker
     property int currentTab: 0
@@ -63,10 +63,16 @@ PanelWindow {
         return Config.bar?.position === "top" ? base : 0;
     }
 
-    implicitWidth: dockWidth + shoulderSize + 32
+    implicitWidth: dockWidth + dock.shoulderSize + 8
 
-    // Patrón ChatPanel: cerrado → emptyMask (no intercepta), abierto → fullMask.
-    mask: Region { item: dock.visible ? fullMask : emptyMask }
+    // Patrón ChatPanel: cerrado → emptyMask (no intercepta), abierto → fullMask con hombros.
+    mask: Region {
+        regions: [
+            Region { item: dock.visible ? fullMask : emptyMask },
+            Region { item: (dock.visible && (Config.bar?.position === "top") && Config.showBackground) ? topLeftShoulder : null },
+            Region { item: (dock.visible && (Config.bar?.position === "bottom") && Config.showBackground) ? bottomLeftShoulder : null }
+        ]
+    }
     Item {
         id: fullMask
         x: dock.width - dock.dockWidth
@@ -152,18 +158,36 @@ PanelWindow {
             }
         }
 
-        // Hombro cóncavo bottom-left del dock body (rail eliminado).
-        // Mismo dark glass que el dockBg para continuidad visual.
+        // Hombro cóncavo top-left del dock body (solo si bar está arriba).
+        Item {
+            id: topLeftShoulder
+            width: dock.shoulderSize
+            height: dock.shoulderSize
+            anchors.top: dockBg.top
+            anchors.right: dockBg.left
+            visible: (Config.bar?.position === "top") && Config.showBackground
+
+            RoundCorner {
+                anchors.fill: parent
+                corner: RoundCorner.CornerEnum.TopRight
+                size: dock.shoulderSize
+                color: dockBg.color
+                Behavior on color { ColorAnimation { duration: 700 } }
+            }
+        }
+
+        // Hombro cóncavo bottom-left del dock body (solo si bar está abajo).
         Item {
             id: bottomLeftShoulder
             width: dock.shoulderSize
             height: dock.shoulderSize
             anchors.bottom: dockBg.bottom
             anchors.right: dockBg.left
+            visible: (Config.bar?.position === "bottom") && Config.showBackground
 
             RoundCorner {
                 anchors.fill: parent
-                corner: RoundCorner.CornerEnum.TopRight
+                corner: RoundCorner.CornerEnum.BottomRight
                 size: dock.shoulderSize
                 color: dockBg.color
                 Behavior on color { ColorAnimation { duration: 700 } }
