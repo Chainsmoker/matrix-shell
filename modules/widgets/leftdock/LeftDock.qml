@@ -76,10 +76,10 @@ PanelWindow {
 
     implicitWidth: dockWidth + dock.shoulderSize + 8
 
-    // Patrón mask: cerrado → hoverStrip, abierto → fullMask con hombros de unión.
+    // Patrón mask: cerrado → click-through (null), abierto → fullMask con hombros de unión.
     mask: Region {
         regions: [
-            Region { item: dock.isOpen ? fullMask : hoverStrip },
+            Region { item: dock.isOpen ? fullMask : null },
             Region { item: (dock.isOpen && (!dock.barAtTop || Config.showBackground)) ? topRightShoulder : null },
             Region { item: (dock.isOpen && !dock.barAtTop && Config.showBackground) ? bottomRightShoulder : null }
         ]
@@ -90,31 +90,6 @@ PanelWindow {
         y: dock.barReserved
         width: dock.dockWidth
         height: dock.height - dock.barReserved
-    }
-    Item {
-        id: hoverStrip
-        x: 0
-        y: dock.barReserved
-        width: 10
-        height: dock.height - dock.barReserved
-    }
-
-    // Gatillo de hover lateral en el borde izquierdo
-    Item {
-        id: hoverTrigger
-        x: 0
-        y: dock.barReserved
-        width: 10
-        height: dock.height - dock.barReserved
-        visible: !dock.isOpen
-
-        HoverHandler {
-            onHoveredChanged: {
-                if (hovered && !dock.isOpen) {
-                    GlobalStates.newsPanelOpen = true;
-                }
-            }
-        }
     }
 
     // Temporizador para auto-cerrar el panel tras 600ms de inactividad del cursor

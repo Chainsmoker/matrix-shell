@@ -242,6 +242,15 @@ PanelWindow {
             z: 4
         }
 
+        LeftNotch {
+            id: leftNotch
+            unifiedEffectActive: unifiedPanel.unifiedEffectActive
+            anchors.fill: parent
+            screen: unifiedPanel.targetScreen
+            reveal: notchContent.reveal
+            z: 4
+        }
+
         AssistantSidebar {
             id: assistantSidebar
             targetScreen: unifiedPanel.targetScreen
