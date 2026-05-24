@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
@@ -35,6 +36,7 @@ PanelWindow {
     readonly property int hPadding: 16
     readonly property int sectionSpacing: 12
     readonly property int headerHeight: 110
+    readonly property int shoulderSize: 18
 
     // Tab activa: 0=Tech News, 1=CVEs
     property int currentTab: 0
@@ -46,6 +48,11 @@ PanelWindow {
             case 1: return "#E07556";             // CVEs: Alert orange/tomato
         }
         return Colors.primary;
+    }
+
+    readonly property bool barAtTop: {
+        const pos = Config.bar?.position ?? "top";
+        return pos === "top";
     }
 
     readonly property int barReserved: {
@@ -70,13 +77,14 @@ PanelWindow {
 
     readonly property int dockContainerWidth: dock.dockWidth
 
-    // Mock Data para Noticias Tech
+    // Mock Data para Noticias Tech con imágenes y fallbacks
     readonly property var techNews: [
         {
             title: "Gemini 2.0 Ultra de Google revoluciona la codificación de agentes autónomos",
             source: "Hacker News · Hace 2h",
             tag: "AI",
             tagColor: "#5dadeb",
+            image: "https://images.unsplash.com/photo-1677442136019-21780efad99a?w=150&auto=format&fit=crop&q=60",
             excerpt: "La nueva arquitectura de agentes autónomos logra resolver tareas complejas de desarrollo de software con razonamiento secuencial de nivel experto."
         },
         {
@@ -84,6 +92,7 @@ PanelWindow {
             source: "Phoronix · Hace 4h",
             tag: "Kernel",
             tagColor: "#E07556",
+            image: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=150&auto=format&fit=crop&q=60",
             excerpt: "Las mejoras reducen la latencia de hilos y aumentan el rendimiento de compilación hasta en un 12% en procesadores de última generación."
         },
         {
@@ -91,6 +100,7 @@ PanelWindow {
             source: "GitHub Changelog · Hace 1d",
             tag: "Wayland",
             tagColor: "#9fd0ec",
+            image: "", // Activará el diseño de fallback abstracto
             excerpt: "La nueva entrega reduce significativamente el consumo de GPU al sincronizar directamente los búferes de renderizado de la pantalla."
         },
         {
@@ -98,6 +108,7 @@ PanelWindow {
             source: "Tech Crunch · Hace 1d",
             tag: "Security",
             tagColor: "#7a4a8a",
+            image: "https://images.unsplash.com/photo-1607799279861-4dd421887fb3?w=150&auto=format&fit=crop&q=60",
             excerpt: "Varias distros principales de Linux anuncian planes para migrar submódulos críticos a librerías escritas nativamente en Rust."
         }
     ]
@@ -174,8 +185,8 @@ PanelWindow {
             radius: 0
             topLeftRadius: 0
             bottomLeftRadius: 0
-            topRightRadius: Styling.radius(16)
-            bottomRightRadius: Styling.radius(16)
+            topRightRadius: 0
+            bottomRightRadius: 0
             clip: true
         }
 
@@ -245,6 +256,24 @@ PanelWindow {
                     font.pixelSize: Styling.fontSize(-1)
                     Layout.fillWidth: true
                 }
+            }
+        }
+
+        // Hombro cóncavo bottom-right del dock body (solo si bar está abajo).
+        Item {
+            id: bottomRightShoulder
+            width: dock.shoulderSize
+            height: dock.shoulderSize
+            anchors.bottom: dockBg.bottom
+            anchors.left: dockBg.right
+            visible: !dock.barAtTop
+
+            RoundCorner {
+                anchors.fill: parent
+                corner: RoundCorner.CornerEnum.TopLeft
+                size: dock.shoulderSize
+                color: dockBg.color
+                Behavior on color { ColorAnimation { duration: 700 } }
             }
         }
 
@@ -332,7 +361,7 @@ PanelWindow {
                     Layout.fillWidth: true
                     currentIndex: dock.currentTab
 
-                    // TAB 0: Noticias Tech
+                    // TAB 0: Noticias Tech (con Layout asimétrico e imágenes)
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 12
@@ -341,67 +370,132 @@ PanelWindow {
                             model: dock.techNews
 
                             delegate: StyledRect {
+                                id: cardRect
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: contentCol.implicitHeight + 24
+                                Layout.preferredHeight: contentRow.implicitHeight + 24
                                 variant: "internalbg"
                                 radius: 14
                                 enableShadow: false
 
-                                ColumnLayout {
-                                    id: contentCol
+                                RowLayout {
+                                    id: contentRow
                                     anchors.fill: parent
                                     anchors.margins: 12
-                                    spacing: 6
+                                    spacing: 12
 
-                                    RowLayout {
+                                    // Lado Izquierdo: Textos
+                                    ColumnLayout {
                                         Layout.fillWidth: true
+                                        spacing: 6
 
-                                        Rectangle {
-                                            width: tagText.implicitWidth + 12
-                                            height: 22
-                                            radius: 6
-                                            color: modelData.tagColor
+                                        RowLayout {
+                                            Layout.fillWidth: true
+
+                                            Rectangle {
+                                                width: tagText.implicitWidth + 12
+                                                height: 22
+                                                radius: 6
+                                                color: cardRect.modelData.tagColor
+
+                                                Text {
+                                                    id: tagText
+                                                    anchors.centerIn: parent
+                                                    text: cardRect.modelData.tag
+                                                    color: "white"
+                                                    font.family: Config.theme.font
+                                                    font.pixelSize: Styling.fontSize(-2)
+                                                    font.weight: Font.Bold
+                                                }
+                                            }
+
+                                            Item { Layout.fillWidth: true }
 
                                             Text {
-                                                id: tagText
-                                                anchors.centerIn: parent
-                                                text: modelData.tag
-                                                color: "white"
+                                                text: cardRect.modelData.source
+                                                color: Colors.outline
                                                 font.family: Config.theme.font
                                                 font.pixelSize: Styling.fontSize(-2)
+                                            }
+                                        }
+
+                                        Text {
+                                            text: cardRect.modelData.title
+                                            color: Colors.overBackground
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(0)
+                                            font.weight: Font.Bold
+                                            Layout.fillWidth: true
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        Text {
+                                            text: cardRect.modelData.excerpt
+                                            color: Colors.outline
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            Layout.fillWidth: true
+                                            wrapMode: Text.WordWrap
+                                            opacity: 0.85
+                                        }
+                                    }
+
+                                    // Lado Derecho: Thumbnail / Fallback
+                                    Item {
+                                        id: imageContainer
+                                        Layout.preferredWidth: 80
+                                        Layout.preferredHeight: 80
+                                        Layout.alignment: Qt.AlignTop
+
+                                        // Fallback degradado abstracto
+                                        Rectangle {
+                                            id: fallbackBg
+                                            anchors.fill: parent
+                                            radius: 10
+                                            visible: !thumbImage.visible
+                                            gradient: Gradient {
+                                                GradientStop { position: 0.0; color: cardRect.modelData.tagColor }
+                                                GradientStop { position: 1.0; color: Qt.darker(cardRect.modelData.tagColor, 1.6) }
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: cardRect.modelData.tag.charAt(0)
+                                                color: "white"
+                                                font.family: Config.theme.font
+                                                font.pixelSize: 32
                                                 font.weight: Font.Bold
                                             }
                                         }
 
-                                        Item { Layout.fillWidth: true }
+                                        // Imagen real
+                                        Image {
+                                            id: thumbImage
+                                            anchors.fill: parent
+                                            source: cardRect.modelData.image || ""
+                                            visible: cardRect.modelData.image !== "" && status === Image.Ready
+                                            fillMode: Image.PreserveAspectCrop
+                                            asynchronous: true
+                                            cache: true
 
-                                        Text {
-                                            text: modelData.source
-                                            color: Colors.outline
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-2)
+                                            layer.enabled: true
+                                            layer.effect: MultiEffect {
+                                                maskEnabled: true
+                                                maskSource: maskShape
+                                            }
                                         }
-                                    }
 
-                                    Text {
-                                        text: modelData.title
-                                        color: Colors.overBackground
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(0)
-                                        font.weight: Font.Bold
-                                        Layout.fillWidth: true
-                                        wrapMode: Text.WordWrap
-                                    }
-
-                                    Text {
-                                        text: modelData.excerpt
-                                        color: Colors.outline
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(-1)
-                                        Layout.fillWidth: true
-                                        wrapMode: Text.WordWrap
-                                        opacity: 0.85
+                                        // Máscara redondeada para la imagen
+                                        Item {
+                                            id: maskShape
+                                            anchors.fill: parent
+                                            visible: false
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                radius: 10
+                                                color: "black"
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -417,45 +511,48 @@ PanelWindow {
                             model: dock.cveFeed
 
                             delegate: StyledRect {
+                                id: cveCard
                                 required property var modelData
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: cveCol.implicitHeight + 24
+                                Layout.preferredHeight: cveRow.implicitHeight + 24
                                 variant: "internalbg"
                                 radius: 14
                                 enableShadow: false
 
-                                ColumnLayout {
-                                    id: cveCol
+                                RowLayout {
+                                    id: cveRow
                                     anchors.fill: parent
                                     anchors.margins: 12
-                                    spacing: 6
+                                    spacing: 12
 
-                                    RowLayout {
+                                    ColumnLayout {
                                         Layout.fillWidth: true
+                                        spacing: 6
 
-                                        Text {
-                                            text: modelData.cve
-                                            color: Colors.overBackground
-                                            font.family: Config.theme.monoFont
-                                            font.pixelSize: Styling.fontSize(0)
-                                            font.weight: Font.Bold
-                                        }
+                                        RowLayout {
+                                            Layout.fillWidth: true
 
-                                        Item { Layout.fillWidth: true }
+                                            Text {
+                                                text: cveCard.modelData.cve
+                                                color: Colors.overBackground
+                                                font.family: Config.theme.monoFont
+                                                font.pixelSize: Styling.fontSize(0)
+                                                font.weight: Font.Bold
+                                            }
 
-                                        // Badge de severidad
-                                        Rectangle {
-                                            width: sevText.implicitWidth + 14
-                                            height: 22
-                                            radius: 6
-                                            color: modelData.color
+                                            Item { Layout.fillWidth: true }
 
-                                            RowLayout {
-                                                anchors.centerIn: parent
-                                                spacing: 4
+                                            // Badge de severidad
+                                            Rectangle {
+                                                width: sevText.implicitWidth + 12
+                                                height: 20
+                                                radius: 6
+                                                color: cveCard.modelData.color
+
                                                 Text {
                                                     id: sevText
-                                                    text: modelData.severity + " (" + modelData.score + ")"
+                                                    anchors.centerIn: parent
+                                                    text: cveCard.modelData.severity + " (" + cveCard.modelData.score + ")"
                                                     color: "white"
                                                     font.family: Config.theme.font
                                                     font.pixelSize: Styling.fontSize(-2)
@@ -463,16 +560,40 @@ PanelWindow {
                                                 }
                                             }
                                         }
+
+                                        Text {
+                                            text: cveCard.modelData.description
+                                            color: Colors.outline
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                            Layout.fillWidth: true
+                                            wrapMode: Text.WordWrap
+                                            opacity: 0.85
+                                        }
                                     }
 
-                                    Text {
-                                        text: modelData.description
-                                        color: Colors.outline
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(-1)
-                                        Layout.fillWidth: true
-                                        wrapMode: Text.WordWrap
-                                        opacity: 0.9
+                                    // Lado Derecho: Icono de Escudo Simétrico
+                                    Item {
+                                        Layout.preferredWidth: 80
+                                        Layout.preferredHeight: 80
+                                        Layout.alignment: Qt.AlignTop
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: 10
+                                            gradient: Gradient {
+                                                GradientStop { position: 0.0; color: cveCard.modelData.color }
+                                                GradientStop { position: 1.0; color: Qt.darker(cveCard.modelData.color, 1.6) }
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: Icons.shield
+                                                color: "white"
+                                                font.family: Icons.font
+                                                font.pixelSize: 32
+                                            }
+                                        }
                                     }
                                 }
                             }

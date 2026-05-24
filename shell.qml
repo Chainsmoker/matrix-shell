@@ -210,20 +210,20 @@ ShellRoot {
     }
 
     // SideNotch — auto-hide pill vertical en el borde izquierdo (igual al dock)
-    Variants {
-        model: {
-            const screens = Quickshell.screens;
-            const list = (Config.bar && Config.bar.screenList !== undefined ? Config.bar.screenList : []);
-            if (!list || list.length === 0)
-                return screens;
-            return screens.filter(screen => list.indexOf(screen.name) !== -1);
-        }
-
-        ControlPanel {
-            required property ShellScreen modelData
-            screen: modelData
-        }
-    }
+    // Variants {
+    //     model: {
+    //         const screens = Quickshell.screens;
+    //         const list = (Config.bar && Config.bar.screenList !== undefined ? Config.bar.screenList : []);
+    //         if (!list || list.length === 0)
+    //             return screens;
+    //         return screens.filter(screen => list.indexOf(screen.name) !== -1);
+    //     }
+    // 
+    //     ControlPanel {
+    //         required property ShellScreen modelData
+    //         screen: modelData
+    //     }
+    // }
 
     // ChatPanel — abre al click del icono "chat" del side notch
     Variants {

@@ -295,6 +295,53 @@ Item {
             }
         }
 
+        // Pinta el lado izquierdo del bar con el color "bg" cuando el LeftDock está abierto,
+        // para que bar y dock se vean como una sola superficie continua.
+        // Sólo aplica en bars horizontales (top/bottom).
+        StyledRect {
+            id: leftDockAccent
+            readonly property int dockWidth: 420
+            readonly property int shoulderSize: 18
+            visible: opacity > 0.001
+            opacity: (root.orientation === "horizontal" && GlobalStates.newsPanelOpen) ? 1 : 0
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: dockWidth
+            variant: "bg"
+            enableShadow: false
+            enableBorder: false
+            radius: 0
+            animateRadius: false
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: (Config.animDuration !== undefined ? Config.animDuration : 0) > 0
+                              ? Config.animDuration
+                              : 220
+                    easing.type: Easing.OutCubic
+                }
+            }
+        }
+
+        // Hombro cóncavo en el top-right de la franja del bar: extiende el bg hacia la derecha
+        // con una curva tipo notch.
+        Item {
+            id: topRightShoulder
+            width: leftDockAccent.shoulderSize
+            height: leftDockAccent.shoulderSize
+            anchors.top: leftDockAccent.top
+            anchors.left: leftDockAccent.right
+            visible: leftDockAccent.visible
+            opacity: leftDockAccent.opacity
+
+            RoundCorner {
+                anchors.fill: parent
+                corner: RoundCorner.CornerEnum.BottomLeft
+                size: leftDockAccent.shoulderSize
+                color: leftDockAccent.color
+            }
+        }
+
         // Bar content inside MouseArea (clicks pass through to children)
         Item {
             id: bar
@@ -432,7 +479,106 @@ Item {
                             bar: root
                             layerEnabled: root.shadowsEnabled
                             startRadius: root.innerRadius
-                            endRadius: (root.pinButtonVisible) ? root.innerRadius : (root.dockAtStart ? root.innerRadius : root.outerRadius)
+                            endRadius: root.innerRadius
+                        }
+
+                        // Chat & News button group
+                        Item {
+                            id: chatNewsGroup
+                            Layout.alignment: Qt.AlignVCenter
+                            implicitWidth: 76
+                            implicitHeight: 36
+
+                            property real startRadius: root.innerRadius
+                            property real endRadius: (root.pinButtonVisible) ? root.innerRadius : (root.dockAtStart ? root.innerRadius : root.outerRadius)
+
+                            StyledRect {
+                                id: groupBg
+                                variant: "bg"
+                                anchors.fill: parent
+                                enableShadow: root.shadowsEnabled
+                                
+                                topLeftRadius: chatNewsGroup.startRadius
+                                bottomLeftRadius: chatNewsGroup.startRadius
+                                topRightRadius: chatNewsGroup.endRadius
+                                bottomRightRadius: chatNewsGroup.endRadius
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 4
+                                spacing: 4
+
+                                // Chat Toggle Button
+                                Button {
+                                    id: chatBtn
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    background: StyledRect {
+                                        variant: GlobalStates.chatPanelOpen ? "primary" : "bg"
+                                        radius: Styling.radius(8)
+                                        
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: Styling.srItem("overprimary")
+                                            opacity: GlobalStates.chatPanelOpen ? 0 : (chatBtn.hovered ? 0.25 : 0)
+                                            radius: parent.radius
+                                        }
+                                    }
+
+                                    contentItem: Text {
+                                        text: Icons.robot
+                                        font.family: Icons.font
+                                        font.pixelSize: 16
+                                        color: GlobalStates.chatPanelOpen ? Styling.srItem("overprimary") : Colors.overBackground
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
+                                    onClicked: GlobalStates.chatPanelOpen = !GlobalStates.chatPanelOpen
+
+                                    StyledToolTip {
+                                        show: chatBtn.hovered
+                                        tooltipText: "IA Chat"
+                                    }
+                                }
+
+                                // News Toggle Button
+                                Button {
+                                    id: newsBtn
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+
+                                    background: StyledRect {
+                                        variant: GlobalStates.newsPanelOpen ? "primary" : "bg"
+                                        radius: Styling.radius(8)
+                                        
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: Styling.srItem("overprimary")
+                                            opacity: GlobalStates.newsPanelOpen ? 0 : (newsBtn.hovered ? 0.25 : 0)
+                                            radius: parent.radius
+                                        }
+                                    }
+
+                                    contentItem: Text {
+                                        text: Icons.globe
+                                        font.family: Icons.font
+                                        font.pixelSize: 16
+                                        color: GlobalStates.newsPanelOpen ? Styling.srItem("overprimary") : Colors.overBackground
+                                        horizontalAlignment: Text.AlignHCenter
+                                        verticalAlignment: Text.AlignVCenter
+                                    }
+
+                                    onClicked: GlobalStates.newsPanelOpen = !GlobalStates.newsPanelOpen
+
+                                    StyledToolTip {
+                                        show: newsBtn.hovered
+                                        tooltipText: "Feed de Noticias"
+                                    }
+                                }
+                            }
                         }
 
                         // Pin button (horizontal)
@@ -687,6 +833,105 @@ Item {
                                     Layout.alignment: Qt.AlignHCenter
                                     startRadius: root.innerRadius
                                     endRadius: root.innerRadius
+                                }
+
+                                // Chat & News button group (vertical)
+                                Item {
+                                    id: chatNewsGroupVert
+                                    Layout.alignment: Qt.AlignHCenter
+                                    implicitWidth: 36
+                                    implicitHeight: 76
+
+                                    property real startRadius: root.innerRadius
+                                    property real endRadius: root.innerRadius
+
+                                    StyledRect {
+                                        id: groupBgVert
+                                        variant: "bg"
+                                        anchors.fill: parent
+                                        enableShadow: root.shadowsEnabled
+                                        
+                                        topLeftRadius: chatNewsGroupVert.startRadius
+                                        topRightRadius: chatNewsGroupVert.startRadius
+                                        bottomLeftRadius: chatNewsGroupVert.endRadius
+                                        bottomRightRadius: chatNewsGroupVert.endRadius
+                                    }
+
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 4
+                                        spacing: 4
+
+                                        // Chat Toggle Button
+                                        Button {
+                                            id: chatBtnVert
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+
+                                            background: StyledRect {
+                                                variant: GlobalStates.chatPanelOpen ? "primary" : "bg"
+                                                radius: Styling.radius(8)
+                                                
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    color: Styling.srItem("overprimary")
+                                                    opacity: GlobalStates.chatPanelOpen ? 0 : (chatBtnVert.hovered ? 0.25 : 0)
+                                                    radius: parent.radius
+                                                }
+                                            }
+
+                                            contentItem: Text {
+                                                text: Icons.robot
+                                                font.family: Icons.font
+                                                font.pixelSize: 16
+                                                color: GlobalStates.chatPanelOpen ? Styling.srItem("overprimary") : Colors.overBackground
+                                                horizontalAlignment: Text.AlignHCenter
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+
+                                            onClicked: GlobalStates.chatPanelOpen = !GlobalStates.chatPanelOpen
+
+                                            StyledToolTip {
+                                                show: chatBtnVert.hovered
+                                                tooltipText: "IA Chat"
+                                            }
+                                        }
+
+                                        // News Toggle Button
+                                        Button {
+                                            id: newsBtnVert
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+
+                                            background: StyledRect {
+                                                variant: GlobalStates.newsPanelOpen ? "primary" : "bg"
+                                                radius: Styling.radius(8)
+                                                
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    color: Styling.srItem("overprimary")
+                                                    opacity: GlobalStates.newsPanelOpen ? 0 : (newsBtnVert.hovered ? 0.25 : 0)
+                                                    radius: parent.radius
+                                                }
+                                            }
+
+                                            contentItem: Text {
+                                                text: Icons.globe
+                                                font.family: Icons.font
+                                                font.pixelSize: 16
+                                                color: GlobalStates.newsPanelOpen ? Styling.srItem("overprimary") : Colors.overBackground
+                                                horizontalAlignment: Text.AlignHCenter
+                                                verticalAlignment: Text.AlignVCenter
+                                            }
+
+                                            onClicked: GlobalStates.newsPanelOpen = !GlobalStates.newsPanelOpen
+
+                                            StyledToolTip {
+                                                show: newsBtnVert.hovered
+                                                tooltipText: "Feed de Noticias"
+                                            }
+                                        }
+                                    }
                                 }
 
                                 // Pin button (vertical)
