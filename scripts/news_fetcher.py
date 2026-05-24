@@ -215,13 +215,18 @@ def get_cves():
             severity = "UNKNOWN"
             color = "#7f8fa6"
             
+        cve_url = f"https://nvd.nist.gov/vuln/detail/{cve_id}"
+        cve_upper = cve_id.upper()
+        if cve_upper.startswith("RHSA-") or cve_upper.startswith("RHBA-") or cve_upper.startswith("RHEA-"):
+            cve_url = f"https://access.redhat.com/errata/{cve_id}"
+
         formatted.append({
             "cve": cve_id,
             "severity": severity,
             "score": f"{score_val:.1f}",
             "color": color,
             "description": description,
-            "url": f"https://nvd.nist.gov/vuln/detail/{cve_id}"
+            "url": cve_url
         })
     return formatted
 
