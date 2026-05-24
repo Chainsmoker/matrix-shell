@@ -114,7 +114,7 @@ def parse_relative_time(published_at):
 
 def get_tech_news():
     """Fetch latest tech/programming articles from Dev.to API."""
-    url = "https://dev.to/api/articles?tag=programming&per_page=12"
+    url = "https://dev.to/api/articles?tag=programming&per_page=30"
     raw_data = fetch_json(url)
     
     formatted = []
@@ -136,7 +136,8 @@ def get_tech_news():
             "tag": tag,
             "tagColor": get_tag_color(tag),
             "image": local_img,
-            "excerpt": item.get("description", "")
+            "excerpt": item.get("description", ""),
+            "url": item.get("url", "")
         })
     return formatted
 
@@ -219,13 +220,14 @@ def get_cves():
             "severity": severity,
             "score": f"{score_val:.1f}",
             "color": color,
-            "description": description
+            "description": description,
+            "url": f"https://nvd.nist.gov/vuln/detail/{cve_id}"
         })
     return formatted
 
 def get_reddit_posts():
     """Fetch latest tech posts from r/technology on Reddit."""
-    url = "https://www.reddit.com/r/technology/new.json?limit=15"
+    url = "https://www.reddit.com/r/technology/new.json?limit=30"
     raw_data = fetch_json(url)
     
     formatted = []
@@ -290,7 +292,8 @@ def get_reddit_posts():
             "tag": tag,
             "tagColor": "#ff4500",  # Reddit Orange
             "image": local_img,
-            "excerpt": excerpt
+            "excerpt": excerpt,
+            "url": data.get("url") if data.get("url") and data.get("url").startswith("http") else f"https://reddit.com{data.get('permalink')}"
         })
     return formatted
 

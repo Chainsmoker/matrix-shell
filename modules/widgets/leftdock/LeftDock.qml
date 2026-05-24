@@ -429,13 +429,25 @@ PanelWindow {
             bottomPadding: 24
             ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
+            NumberAnimation {
+                id: scrollAnim
+                target: scroller.contentItem
+                property: "contentY"
+                duration: 250
+                easing.type: Easing.OutCubic
+            }
+
             WheelHandler {
                 target: scroller.contentItem
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 onWheel: (event) => {
                     var flick = scroller.contentItem;
-                    var scrollStep = event.angleDelta.y * 2.2;
-                    flick.contentY = Math.max(0, Math.min(flick.contentHeight - flick.height, flick.contentY - scrollStep));
+                    var scrollStep = event.angleDelta.y * 1.5;
+                    var currentTarget = scrollAnim.running ? scrollAnim.to : flick.contentY;
+                    var newTarget = Math.max(0, Math.min(flick.contentHeight - flick.height, currentTarget - scrollStep));
+                    scrollAnim.stop();
+                    scrollAnim.to = newTarget;
+                    scrollAnim.start();
                     event.accepted = true;
                 }
             }
@@ -507,6 +519,16 @@ PanelWindow {
 
                                 HoverHandler {
                                     onHoveredChanged: cveCard.isHovered = hovered
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (cveCard.modelData.url) {
+                                            Qt.openUrlExternally(cveCard.modelData.url)
+                                        }
+                                    }
                                 }
 
                                 ColumnLayout {
@@ -665,6 +687,16 @@ PanelWindow {
 
             HoverHandler {
                 onHoveredChanged: cardRect.isHovered = hovered
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: {
+                    if (cardRect.modelData.url) {
+                        Qt.openUrlExternally(cardRect.modelData.url)
+                    }
+                }
             }
 
             ColumnLayout {
