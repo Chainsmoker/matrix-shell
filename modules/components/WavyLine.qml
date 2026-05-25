@@ -25,8 +25,12 @@ Canvas {
     // =========================================================================
     // Visualizer Config
     // =========================================================================
-    property int numBars: 12
-    property var barHeights: [0,0,0,0,0,0,0,0,0,0,0,0]
+    property int numBars: 20
+    property var barHeights: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+
+    onWidthChanged: requestPaint()
+    onHeightChanged: requestPaint()
 
     // =========================================================================
     // CAVA Process (Real-time analyzer)
@@ -37,22 +41,30 @@ Canvas {
         running: root.running && root.visible && root.active
         command: ["cava", "-p", Quickshell.env("HOME") + "/.config/cava/visualizer.conf"]
 
+        onRunningChanged: {
+            console.log("[WavyLine] CAVA running state changed:", running);
+        }
+
         stdout: SplitParser {
             onRead: data => {
-                var heights = data.trim().split(';').map(Number);
-                // CAVA raw ascii output ends with a trailing semicolon, producing an extra empty element.
-                // We pop the last element if it is NaN.
-                if (heights.length > 0 && isNaN(heights[heights.length - 1])) {
-                    heights.pop();
+                var parts = data.trim().split(';');
+                if (parts.length > 0 && parts[parts.length - 1] === "") {
+                    parts.pop();
                 }
-                if (heights.length === root.numBars) {
-                    // Validate values
+                if (parts.length === root.numBars) {
+                    var heights = parts.map(Number);
                     for (var i = 0; i < root.numBars; i++) {
                         if (isNaN(heights[i])) heights[i] = 0;
                     }
                     root.barHeights = heights;
                     root.requestPaint();
                 }
+            }
+        }
+
+        stderr: SplitParser {
+            onRead: data => {
+                console.warn("[WavyLine] CAVA Error:", data);
             }
         }
     }
@@ -101,7 +113,6 @@ Canvas {
         ctx.fillStyle = root.color;
 
         var barW = root.lineWidth;
-        // Calculate spacing evenly across the canvas width
         var spacing = (width - (root.numBars * barW)) / (root.numBars - 1);
         if (spacing < 1) spacing = 1;
 
@@ -114,7 +125,6 @@ Canvas {
 
             // Minimum height for aesthetic presence
             if (hVal < 2) hVal = 2;
-            // Cap height
             if (hVal > height) hVal = height;
 
             var y = (height - hVal) / 2;

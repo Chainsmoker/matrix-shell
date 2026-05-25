@@ -472,9 +472,9 @@ Item {
                 }
                 clip: true
                 scale: 1.0
-                visible: compactPlayer.playerExpanded
+                visible: false // Hidden by user request
                 readonly property real naturalWidth: implicitWidth
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? naturalWidth : 0
+                Layout.preferredWidth: 0 // Hidden by user request
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
@@ -535,9 +535,9 @@ Item {
                 font.pixelSize: 20
                 font.family: Icons.font
                 verticalAlignment: Text.AlignVCenter
-                visible: compactPlayer.playerExpanded
-                Layout.preferredWidth: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? implicitWidth : 0
-                Layout.rightMargin: (compactPlayer.player !== null && compactPlayer.playerExpanded) ? 4 : 0
+                visible: false // Hidden by user request
+                Layout.preferredWidth: 0 // Hidden by user request
+                Layout.rightMargin: 0 // Hidden by user request
                 Behavior on Layout.preferredWidth {
                     enabled: Config.animDuration > 0
                     NumberAnimation {
