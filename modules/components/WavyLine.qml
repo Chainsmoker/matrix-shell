@@ -16,6 +16,11 @@ Canvas {
     property real fullLength: width
     property bool running: true
     property bool active: true // Map playing state (isPlaying)
+    // true  → visualizador real de cava (notch/player).
+    // false → onda por-valor SIN lanzar cava (sliders/seekbars).
+    property bool useCava: true
+    // En modo no-cava: false = línea sinusoidal; true = barras animadas (ecualizador).
+    property bool barStyle: false
 
     // Legacy compatibility
     property real amplitude: lineWidth * amplitudeMultiplier
@@ -32,13 +37,21 @@ Canvas {
     onWidthChanged: requestPaint()
     onHeightChanged: requestPaint()
 
+    // Anima la onda estática (modo no-cava) repintando periódicamente para que fluya.
+    Timer {
+        interval: 33
+        repeat: true
+        running: !root.useCava && root.visible && root.animationsEnabled
+        onTriggered: root.requestPaint()
+    }
+
     // =========================================================================
     // CAVA Process (Real-time analyzer)
     // =========================================================================
     Process {
         id: cavaProcess
-        // Only run CAVA when music is active/playing and widget is visible
-        running: root.running && root.visible && root.active
+        // Only run CAVA when music is active/playing, widget is visible, y en modo cava
+        running: root.running && root.visible && root.active && root.useCava
         command: ["cava", "-p", Quickshell.env("HOME") + "/.config/cava/visualizer.conf"]
 
         onRunningChanged: {
@@ -109,6 +122,53 @@ Canvas {
         ctx.clearRect(0, 0, width, height);
 
         if (width <= 0 || height <= 0) return;
+
+        // Modo no-cava (sliders/seekbars): barras animadas o línea sinusoidal.
+        if (!root.useCava) {
+            // --- Barras animadas (ecualizador suave, por-valor, sin cava) ---
+            if (root.barStyle) {
+                var bw = root.lineWidth;
+                var gap = (width - (root.numBars * bw)) / (root.numBars - 1);
+                if (gap < 1) gap = 1;
+                var tt = Date.now() / 220.0;
+                var level = Math.min(root.amplitudeMultiplier / 1.5, 1.0);
+                ctx.fillStyle = root.color;
+                for (var bi = 0; bi < root.numBars; bi++) {
+                    var bx = bi * (bw + gap);
+                    var wv = 0.5 + 0.5 * Math.sin(tt + bi * 0.55);
+                    var hh = (0.18 + 0.72 * wv * (0.35 + 0.65 * level)) * height;
+                    if (hh < 2) hh = 2;
+                    if (hh > height) hh = height;
+                    var by = (height - hh) / 2;
+                    ctx.beginPath();
+                    ctx.roundedRect(bx, by, bw, hh, bw / 2, bw / 2);
+                    ctx.fill();
+                }
+                return;
+            }
+
+            var amp = root.lineWidth * root.amplitudeMultiplier;
+            // Clamp: la onda nunca debe salirse de la caja (p.ej. micro a >100%).
+            var maxAmp = (height - root.lineWidth) / 2;
+            if (amp > maxAmp) amp = maxAmp;
+            if (amp < 0) amp = 0;
+            var freq = root.frequency;
+            var phase = Date.now() / 400.0;
+            var centerY = height / 2;
+            ctx.strokeStyle = root.color;
+            ctx.lineWidth = root.lineWidth;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            for (var sx = ctx.lineWidth / 2; sx <= root.width - ctx.lineWidth / 2; sx += 1) {
+                var waveY = centerY + amp * Math.sin(freq * 2 * Math.PI * sx / root.fullLength + phase);
+                if (sx === ctx.lineWidth / 2)
+                    ctx.moveTo(sx, waveY);
+                else
+                    ctx.lineTo(sx, waveY);
+            }
+            ctx.stroke();
+            return;
+        }
 
         ctx.fillStyle = root.color;
 

@@ -18,6 +18,7 @@ Item {
     property bool wavy: false
     property real wavyAmplitude: 0.8
     property real wavyFrequency: 8
+    property bool barStyle: false // onda (false) o barras animadas estilo ecualizador (true)
     property real iconRotation: 0
     property real iconScale: 1
 
@@ -149,6 +150,7 @@ Item {
                     lineWidth: 4
                     fullLength: sliderContainer.width
                     active: true
+                    barStyle: root.barStyle
                 }
             }
 

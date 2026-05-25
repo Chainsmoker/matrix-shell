@@ -162,9 +162,10 @@ Item {
                 icon: Audio.source?.audio?.muted ? Icons.micSlash : Icons.mic
                 sliderValue: Audio.source?.audio?.volume ?? 0
                 progressColor: Audio.source?.audio?.muted ? Colors.outline : Styling.srItem("overprimary")
+                // Micro: barras animadas (ecualizador) — efecto bonito y distinto al altavoz.
                 wavy: true
-                wavyAmplitude: Audio.source?.audio?.muted ? 0.5 : 1.5 * sliderValue
-                wavyFrequency: Audio.source?.audio?.muted ? 1.0 : 8.0 * sliderValue
+                barStyle: true
+                wavyAmplitude: Audio.source?.audio?.muted ? 0.4 : 1.2 * Math.min(sliderValue, 1.0)
 
                 onValueChanged: newValue => {
                     if (Audio.source?.audio) {
