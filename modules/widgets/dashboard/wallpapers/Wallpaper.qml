@@ -239,7 +239,7 @@ PanelWindow {
         if (!wallpaperDir)
             return;
         // Explicitly update command with current wallpaperDir
-        var cmd = ["find", wallpaperDir, "-mindepth", "1", "-name", ".*", "-prune", "-o", "-type", "d", "-print"];
+        var cmd = ["find", "-L", wallpaperDir, "-mindepth", "1", "-name", ".*", "-prune", "-o", "-type", "d", "-print"];
         scanSubfoldersProcess.command = cmd;
         scanSubfoldersProcess.running = true;
     }
@@ -264,7 +264,7 @@ PanelWindow {
         directoryWatcher.path = wallpaperDir;
 
         // Force update scan command
-        var cmd = ["find", wallpaperDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"];
+        var cmd = ["find", "-L", wallpaperDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"];
         scanWallpapers.command = cmd;
         scanWallpapers.running = true;
 
@@ -397,6 +397,13 @@ PanelWindow {
         }
     }
 
+    // Change the wallpaper source directory (persists + triggers a rescan via
+    // the adapter's onWallPathChanged handler).
+    function setWallpaperDir(path) {
+        if (path && path !== "")
+            wallpaperConfig.adapter.wallPath = path;
+    }
+
     // property string mpvSocket: "/tmp/ambxst_mpv_socket"
     property string mpvSocket: "/tmp/ambxst_mpv_socket_" + (currentScreenName ? currentScreenName : "ALL")
 
@@ -405,39 +412,29 @@ PanelWindow {
             console.log("Skipping Matugen because color preset is active:", activeColorPreset);
             return;
         }
+        if (!currentWallpaper || !initialLoadCompleted)
+            return;
 
-        if (currentWallpaper && initialLoadCompleted) {
-            console.log("Running Matugen for current wallpaper:", currentWallpaper);
+        var matugenSource = getColorSource(currentWallpaper);
+        var scheme = wallpaperConfig.adapter.matugenScheme;
+        console.log("Running Matugen:", matugenSource, "scheme:", scheme, "light:", Config.theme.lightMode);
 
-            var fileType = getFileType(currentWallpaper);
-            var matugenSource = getColorSource(currentWallpaper);
+        if (matugenProcessWithConfig.running)
+            matugenProcessWithConfig.running = false;
+        if (matugenProcessNormal.running)
+            matugenProcessNormal.running = false;
 
-            console.log("Using source for matugen:", matugenSource, "(type:", fileType + ")");
+        var commandWithConfig = ["matugen", "image", matugenSource, "--source-color-index", "0", "-c", decodeURIComponent(Qt.resolvedUrl("../../../../assets/matugen/config.toml").toString().replace("file://", "")), "-t", scheme];
+        if (Config.theme.lightMode)
+            commandWithConfig.push("-m", "light");
+        matugenProcessWithConfig.command = commandWithConfig;
+        matugenProcessWithConfig.running = true;
 
-            // Stop existing processes if running to prioritize new request
-            if (matugenProcessWithConfig.running) {
-                matugenProcessWithConfig.running = false;
-            }
-            if (matugenProcessNormal.running) {
-                matugenProcessNormal.running = false;
-            }
-
-            // Ejecutar matugen con configuración específica
-            var commandWithConfig = ["matugen", "image", matugenSource, "--source-color-index", "0", "-c", decodeURIComponent(Qt.resolvedUrl("../../../../assets/matugen/config.toml").toString().replace("file://", "")), "-t", wallpaperConfig.adapter.matugenScheme];
-            if (Config.theme.lightMode) {
-                commandWithConfig.push("-m", "light");
-            }
-            matugenProcessWithConfig.command = commandWithConfig;
-            matugenProcessWithConfig.running = true;
-
-            // Ejecutar matugen normal en paralelo
-            var commandNormal = ["matugen", "image", matugenSource, "--source-color-index", "0", "-t", wallpaperConfig.adapter.matugenScheme];
-            if (Config.theme.lightMode) {
-                commandNormal.push("-m", "light");
-            }
-            matugenProcessNormal.command = commandNormal;
-            matugenProcessNormal.running = true;
-        }
+        var commandNormal = ["matugen", "image", matugenSource, "--source-color-index", "0", "-t", scheme];
+        if (Config.theme.lightMode)
+            commandNormal.push("-m", "light");
+        matugenProcessNormal.command = commandNormal;
+        matugenProcessNormal.running = true;
     }
 
     function updateMpvRuntime(enable) {
@@ -699,7 +696,7 @@ PanelWindow {
         onAdapterUpdated: {
             // Ensure matugenScheme has a default value
             if (!wallpaperConfig.adapter.matugenScheme) {
-                wallpaperConfig.adapter.matugenScheme = "scheme-tonal-spot";
+                wallpaperConfig.adapter.matugenScheme = "scheme-content";
             }
             // Update the currentMatugenScheme property to trigger UI updates
             currentMatugenScheme = Qt.binding(function () {
@@ -712,7 +709,7 @@ PanelWindow {
             id: wallpaperAdapter
             property string currentWall: ""
             property string wallPath: ""
-            property string matugenScheme: "scheme-tonal-spot"
+            property string matugenScheme: "scheme-content"
             property string activeColorPreset: ""
             property bool tintEnabled: false
             property var perScreenWallpapers: ({})
@@ -761,7 +758,7 @@ PanelWindow {
                         directoryWatcher.reload();
 
                         // Perform initial wallpaper scan
-                        var cmd = ["find", wallPath, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"];
+                        var cmd = ["find", "-L", wallPath, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"];
                         scanWallpapers.command = cmd;
                         scanWallpapers.running = true;
                         wallpaper.scanSubfolders();
@@ -916,7 +913,7 @@ PanelWindow {
     Process {
         id: scanSubfoldersProcess
         running: false
-        command: wallpaperDir ? ["find", wallpaperDir, "-mindepth", "1", "-name", ".*", "-prune", "-o", "-type", "d", "-print"] : []
+        command: wallpaperDir ? ["find", "-L", wallpaperDir, "-mindepth", "1", "-name", ".*", "-prune", "-o", "-type", "d", "-print"] : []
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -1036,7 +1033,7 @@ PanelWindow {
     Process {
         id: scanWallpapers
         running: false
-        command: wallpaperDir ? ["find", wallpaperDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"] : []
+        command: wallpaperDir ? ["find", "-L", wallpaperDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"] : []
 
         onRunningChanged: {
             if (running && wallpaperDir === "") {
@@ -1115,7 +1112,7 @@ PanelWindow {
     Process {
         id: scanFallback
         running: false
-        command: ["find", fallbackDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"]
+        command: ["find", "-L", fallbackDir, "-name", ".*", "-prune", "-o", "-type", "f", "(", "-name", "*.jpg", "-o", "-name", "*.jpeg", "-o", "-name", "*.png", "-o", "-name", "*.webp", "-o", "-name", "*.tif", "-o", "-name", "*.tiff", "-o", "-name", "*.gif", "-o", "-name", "*.mp4", "-o", "-name", "*.webm", "-o", "-name", "*.mov", "-o", "-name", "*.avi", "-o", "-name", "*.mkv", ")", "-print"]
 
         stdout: StdioCollector {
             onStreamFinished: {
