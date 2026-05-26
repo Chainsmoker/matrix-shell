@@ -58,6 +58,7 @@ QtObject {
             case "powermenu": toggleSimpleModule("powermenu"); break;
             case "tools": toggleSimpleModule("tools"); break;
             case "config": toggleSettings(); break;
+            case "wallpaper-picker": GlobalStates.wallpaperPickerVisible = !GlobalStates.wallpaperPickerVisible; break;
             case "screenshot": Screenshot.initialize(); GlobalStates.screenshotToolVisible = true; break;
             case "screenrecord": ScreenRecorder.initialize(); GlobalStates.screenRecordToolVisible = true; break;
             case "lens": 

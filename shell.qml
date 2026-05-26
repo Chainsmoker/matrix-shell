@@ -286,6 +286,20 @@ ShellRoot {
         id: compositorConfig
     }
 
+    // Wallpaper picker overlay
+    Variants {
+        model: Quickshell.screens
+
+        Loader {
+            id: wallpaperPickerLoader
+            active: GlobalStates.wallpaperPickerVisible
+            required property ShellScreen modelData
+            sourceComponent: WallpaperPickerOverlay {
+                targetScreen: wallpaperPickerLoader.modelData
+            }
+        }
+    }
+
     // Screenshot tool
     Variants {
         model: Quickshell.screens

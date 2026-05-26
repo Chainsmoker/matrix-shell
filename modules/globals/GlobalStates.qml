@@ -61,6 +61,7 @@ Singleton {
     // Right edge dock (calendar + weather + pomodoro + color picker)
     property bool rightDockOpen: false
     readonly property var availableLayouts: ["dwindle", "master", "scrolling"]
+    property bool utilityPanelOpen: false
 
     Process {
         id: getLayoutProcess
@@ -179,11 +180,14 @@ Singleton {
     property bool osdVisible: false
     property string osdIndicator: "volume" // volume, mic, brightness
 
+    // Wallpaper picker overlay state
+    property bool wallpaperPickerVisible: false
+
     // Screenshot Tool state
     property bool screenshotToolVisible: false
     // property string screenshotToolMode: "normal" // DEPRECATED
     property string screenshotCaptureMode: "region" // region, window, screen
-    
+
     // Global selection state for synchronization
     property int screenshotSelectionX: 0
     property int screenshotSelectionY: 0
