@@ -283,187 +283,112 @@ PanelWindow {
 
             ColumnLayout {
                 width: scroller.width
+                height: Math.max(implicitHeight, scroller.height)
                 spacing: dock.sectionSpacing
 
                 // ── CONTENT (sección activa, full-width) ────────
                 StackLayout {
                     id: contentStack
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     Layout.leftMargin: dock.hPadding
                     Layout.rightMargin: dock.hPadding
                     Layout.alignment: Qt.AlignTop
                     currentIndex: dock.currentTab
 
-                // ═══════ TAB 0: CALENDAR (time-of-day immersive) ═
+                // ═══════ TAB 0: TIME // CALENDAR (brutalist matugen) ═
                 Item {
                     id: calendarTab
                     Layout.fillWidth: true
                     implicitHeight: calendarContent.implicitHeight + 24
                     Layout.preferredHeight: implicitHeight
 
-                    // Hora actual (sin segundos para que no repaint con cada tick)
-                    readonly property real hourOfDay: clockHeaderPane.now.getHours() + clockHeaderPane.now.getMinutes() / 60
+                    // Reloj central — un solo tick/seg, solo cuando el tab está visible
+                    property date now: new Date()
+                    Timer {
+                        interval: 1000
+                        running: dock.isOpen && dock.currentTab === 0
+                        repeat: true
+                        triggeredOnStart: true
+                        onTriggered: calendarTab.now = new Date()
+                    }
 
-                    // Background gradient time-of-day (cambia smoothly)
+                    // ── Parallax mouse-follow: px/py normalizados [-1..1] desde el centro.
+                    // HoverHandler NO consume eventos → los MouseArea de abajo (nav del mes,
+                    // celdas del día) siguen recibiendo su hover normal. El Behavior amortigua
+                    // el seguimiento y devuelve las capas al centro al salir.
+                    property real px: parallaxHover.hovered ? (parallaxHover.point.position.x / width - 0.5) * 2 : 0
+                    property real py: parallaxHover.hovered ? (parallaxHover.point.position.y / height - 0.5) * 2 : 0
+                    Behavior on px { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    Behavior on py { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    HoverHandler { id: parallaxHover }
+
+                    // ── BACKGROUND: superficie matugen oscura + grid técnico + glows primary/tertiary.
+                    // Reemplaza el viejo cielo time-of-day para alinear el tab con los demás.
                     Rectangle {
                         id: calendarBg
                         anchors.fill: parent
                         radius: Styling.radius(8)
                         clip: true
+                        color: Qt.darker(Colors.surface, 1.25)
 
-                        // Cielo derivado de la paleta matugen (varía por hora del día).
-                        function topColor(h) {
-                            if (h < 5)   return Qt.darker(Colors.background, 1.3);  // noche
-                            if (h < 6.5) return Qt.darker(Colors.secondary, 1.5);   // pre-amanecer
-                            if (h < 7.5) return Qt.lighter(Colors.tertiary, 1.1);   // amanecer
-                            if (h < 12)  return Qt.lighter(Colors.primary, 1.25);   // mañana
-                            if (h < 16)  return Colors.primary;                     // tarde
-                            if (h < 18)  return Colors.tertiary;                    // atardecer
-                            if (h < 20)  return Qt.darker(Colors.secondary, 1.2);   // crepúsculo
-                            if (h < 22)  return Qt.darker(Colors.background, 1.15);  // anochecer
-                            return Qt.darker(Colors.background, 1.3);
+                        // Glow blob primary (capa profunda, parallax fuerte)
+                        Rectangle {
+                            width: parent.width * 1.1
+                            height: width
+                            radius: width / 2
+                            x: parent.width * 0.55 - width / 2
+                            y: -width * 0.35
+                            color: Colors.primary
+                            opacity: 0.16
+                            transform: Translate { x: calendarTab.px * 26; y: calendarTab.py * 20 }
                         }
-                        function bottomColor(h) {
-                            if (h < 5)   return Qt.darker(Colors.surface, 1.4);
-                            if (h < 6.5) return Qt.darker(Colors.tertiary, 1.2);
-                            if (h < 7.5) return Qt.lighter(Colors.tertiary, 1.35);
-                            if (h < 12)  return Qt.lighter(Colors.primary, 1.5);
-                            if (h < 16)  return Qt.lighter(Colors.primary, 1.25);
-                            if (h < 18)  return Qt.lighter(Colors.tertiary, 1.2);
-                            if (h < 20)  return Qt.darker(Colors.secondary, 1.5);
-                            if (h < 22)  return Qt.darker(Colors.surface, 1.2);
-                            return Qt.darker(Colors.surface, 1.4);
+                        // Glow blob tertiary (parallax aún más fuerte, esquina opuesta)
+                        Rectangle {
+                            width: parent.width * 0.7
+                            height: width
+                            radius: width / 2
+                            x: parent.width * 0.1 - width / 2
+                            y: parent.height * 0.72
+                            color: Colors.tertiary
+                            opacity: 0.10
+                            transform: Translate { x: calendarTab.px * 34; y: calendarTab.py * 26 }
                         }
 
-                        gradient: Gradient {
-                            orientation: Gradient.Vertical
-                            GradientStop {
-                                position: 0.0
-                                color: calendarBg.topColor(calendarTab.hourOfDay)
-                                Behavior on color { ColorAnimation { duration: 3000 } }
+                        // Grid técnico (capa media, parallax medio)
+                        Canvas {
+                            id: gridCanvas
+                            anchors.fill: parent
+                            antialiasing: false
+                            transform: Translate { x: calendarTab.px * 12; y: calendarTab.py * 10 }
+                            readonly property color lineColor: Colors.outline
+                            onPaint: {
+                                var ctx = getContext("2d");
+                                ctx.clearRect(0, 0, width, height);
+                                ctx.strokeStyle = lineColor;
+                                ctx.globalAlpha = 0.12;
+                                ctx.lineWidth = 1;
+                                var step = 26;
+                                for (var gx = -step; gx <= width + step; gx += step) {
+                                    ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, height); ctx.stroke();
+                                }
+                                for (var gy = -step; gy <= height + step; gy += step) {
+                                    ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(width, gy); ctx.stroke();
+                                }
                             }
-                            GradientStop {
-                                position: 1.0
-                                color: calendarBg.bottomColor(calendarTab.hourOfDay)
-                                Behavior on color { ColorAnimation { duration: 3000 } }
+                            Connections {
+                                target: Colors
+                                function onOutlineChanged() { gridCanvas.requestPaint(); }
                             }
                         }
 
-                        // Difuminado/vignette — oscurece sutil para dar profundidad y
-                        // contraste (look "difuminado" tipo pomodoro). Va sobre el cielo
-                        // pero debajo del sol/luna/estrellas.
+                        // Vignette inferior sutil para asentar el contenido
                         Rectangle {
                             anchors.fill: parent
                             gradient: Gradient {
                                 orientation: Gradient.Vertical
-                                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.30) }
-                                GradientStop { position: 0.5; color: Qt.rgba(0, 0, 0, 0.12) }
-                                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.55) }
-                            }
-                        }
-
-                        // Estrellas (noche)
-                        Item {
-                            anchors.fill: parent
-                            visible: calendarTab.hourOfDay < 5.5 || calendarTab.hourOfDay >= 20
-                            Repeater {
-                                model: 50
-                                Rectangle {
-                                    required property int index
-                                    x: Math.random() * parent.width
-                                    y: Math.random() * (parent.height * 0.6)
-                                    width: 1 + Math.random() * 1.5
-                                    height: width
-                                    radius: width / 2
-                                    color: "white"
-                                    SequentialAnimation on opacity {
-                                        loops: Animation.Infinite
-                                        NumberAnimation { from: 0.2; to: 1.0; duration: 1500 + Math.random() * 2000 }
-                                        NumberAnimation { from: 1.0; to: 0.2; duration: 1500 + Math.random() * 2000 }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Sol (mañana hasta sunset) — disco matugen cálido con halo difuso multicapa
-                        Item {
-                            visible: calendarTab.hourOfDay >= 6.5 && calendarTab.hourOfDay < 18
-                            width: 70; height: 70
-                            x: parent.width - width - 28
-                            y: 28
-
-                            property color sunColor: calendarTab.hourOfDay < 7.5 ? Qt.lighter(Colors.tertiary, 1.2)
-                                                   : calendarTab.hourOfDay < 17 ? Qt.lighter(Colors.primary, 1.45)
-                                                   : Colors.tertiary
-                            Behavior on sunColor { ColorAnimation { duration: 3000 } }
-
-                            // Halos difusos (de fuera hacia dentro)
-                            Rectangle { anchors.centerIn: parent; width: 178; height: 178; radius: 89; color: parent.sunColor; opacity: 0.05 }
-                            Rectangle { anchors.centerIn: parent; width: 134; height: 134; radius: 67; color: parent.sunColor; opacity: 0.09 }
-                            Rectangle { anchors.centerIn: parent; width: 98;  height: 98;  radius: 49; color: parent.sunColor; opacity: 0.16 }
-                            // Disco
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 70; height: 70; radius: 35
-                                color: parent.sunColor
-                            }
-                        }
-
-                        // Luna (noche) — disco matugen claro con halo suave + cráter (crescent)
-                        Item {
-                            visible: calendarTab.hourOfDay < 5.5 || calendarTab.hourOfDay >= 20
-                            width: 60; height: 60
-                            x: parent.width - width - 28
-                            y: 28
-
-                            property color moonColor: Qt.lighter(Colors.foreground, 1.05)
-
-                            // Halo suave
-                            Rectangle { anchors.centerIn: parent; width: 120; height: 120; radius: 60; color: parent.moonColor; opacity: 0.05 }
-                            Rectangle { anchors.centerIn: parent; width: 86;  height: 86;  radius: 43; color: parent.moonColor; opacity: 0.10 }
-                            // Disco + sombra (crescent del color del cielo, para que se funda)
-                            Rectangle {
-                                anchors.centerIn: parent
-                                width: 60; height: 60; radius: 30
-                                color: parent.moonColor
-                                Rectangle {
-                                    width: 48; height: 48; radius: 24
-                                    x: 16; y: -4
-                                    color: calendarBg.topColor(calendarTab.hourOfDay)
-                                    Behavior on color { ColorAnimation { duration: 3000 } }
-                                }
-                            }
-                        }
-
-                        // Partículas de día (dust motes / lluvia de luz)
-                        Item {
-                            anchors.fill: parent
-                            visible: calendarTab.hourOfDay >= 6 && calendarTab.hourOfDay < 20
-                            Repeater {
-                                model: 18
-                                Rectangle {
-                                    required property int index
-                                    x: Math.random() * parent.width
-                                    width: 2 + Math.random() * 1.5
-                                    height: width
-                                    radius: width / 2
-                                    color: Qt.rgba(1, 0.95, 0.85, 0.45)
-                                    opacity: 0
-                                    SequentialAnimation on y {
-                                        loops: Animation.Infinite
-                                        NumberAnimation {
-                                            from: parent.height + 10; to: -10
-                                            duration: 12000 + Math.random() * 8000
-                                            easing.type: Easing.Linear
-                                        }
-                                    }
-                                    SequentialAnimation on opacity {
-                                        loops: Animation.Infinite
-                                        NumberAnimation { from: 0; to: 0.6; duration: 2000 }
-                                        PauseAnimation { duration: 5000 }
-                                        NumberAnimation { from: 0.6; to: 0; duration: 2000 }
-                                    }
-                                }
+                                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.0) }
+                                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.28) }
                             }
                         }
                     }
@@ -472,236 +397,158 @@ PanelWindow {
                         id: calendarContent
                         anchors.fill: parent
                         anchors.margins: 12
-                        spacing: 10
+                        spacing: 8
 
-                    // Analog clock + fecha + context strip (glass card)
-                    Rectangle {
-                        id: clockHeaderPane
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 280
-                        color: Qt.rgba(0, 0, 0, 0.35)
-                        radius: 14
-                        border.color: Qt.rgba(1, 1, 1, 0.12)
-                        border.width: 1
+                        // ════ HERO: reloj digital con parallax en capas ════
+                        StyledRect {
+                            variant: "internalbg"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 168
+                            radius: 0
 
-                        property date now: new Date()
-                        Timer {
-                            interval: 1000
-                            running: dock.isOpen && dock.currentTab === 0
-                            repeat: true
-                            triggeredOnStart: true
-                            onTriggered: clockHeaderPane.now = new Date()
-                        }
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 14
-                            spacing: 10
-
-                            // Analog clock face — Canvas draws face+numerals+ticks
-                            // de forma determinística; las manecillas son
-                            // Rectangle rotables encima.
-                            Item {
-                                id: analogClock
-                                Layout.alignment: Qt.AlignHCenter
-                                Layout.preferredWidth: 180
-                                Layout.preferredHeight: 180
-                                width: 180
-                                height: 180
-
-                                readonly property real cx: width / 2
-                                readonly property real cy: height / 2
-
-                                // Cara estática (border + numerales + minute ticks)
-                                Canvas {
-                                    id: faceCanvas
-                                    anchors.fill: parent
-                                    antialiasing: true
-
-                                    readonly property color faceBg: Styling.srItem("pane") || Colors.background
-                                    readonly property color outlineColor: Colors.outline
-                                    readonly property color numColor: Colors.overBackground
-
-                                    onPaint: {
-                                        var ctx = getContext("2d");
-                                        ctx.clearRect(0, 0, width, height);
-
-                                        var cx = width / 2;
-                                        var cy = height / 2;
-                                        var rOuter = Math.min(cx, cy) - 1;
-                                        var rNumerals = rOuter - 16;
-                                        var rTickOuter = rOuter - 6;
-                                        var rTickInner = rOuter - 10;
-
-                                        // Face fill
-                                        ctx.fillStyle = faceBg;
-                                        ctx.beginPath();
-                                        ctx.arc(cx, cy, rOuter, 0, 2 * Math.PI);
-                                        ctx.fill();
-
-                                        // Outer border
-                                        ctx.strokeStyle = outlineColor;
-                                        ctx.lineWidth = 1.5;
-                                        ctx.beginPath();
-                                        ctx.arc(cx, cy, rOuter, 0, 2 * Math.PI);
-                                        ctx.stroke();
-
-                                        // Minute ticks (60). Los de cada 5 son más largos pero
-                                        // las posiciones de 5 las cubre el numeral, así que
-                                        // dibujamos sólo los 48 minor ticks.
-                                        ctx.strokeStyle = outlineColor;
-                                        ctx.lineWidth = 1;
-                                        for (var i = 0; i < 60; i++) {
-                                            if (i % 5 === 0) continue; // skip donde van numerales
-                                            var a = (i / 60) * 2 * Math.PI - Math.PI / 2;
-                                            var x1 = cx + rTickInner * Math.cos(a);
-                                            var y1 = cy + rTickInner * Math.sin(a);
-                                            var x2 = cx + rTickOuter * Math.cos(a);
-                                            var y2 = cy + rTickOuter * Math.sin(a);
-                                            ctx.beginPath();
-                                            ctx.moveTo(x1, y1);
-                                            ctx.lineTo(x2, y2);
-                                            ctx.stroke();
-                                        }
-
-                                        // Roman numerals (XII at top)
-                                        var romans = ["XII","I","II","III","IV","V","VI","VII","VIII","IX","X","XI"];
-                                        ctx.fillStyle = numColor;
-                                        ctx.font = "600 13px " + Config.theme.font;
-                                        ctx.textAlign = "center";
-                                        ctx.textBaseline = "middle";
-                                        for (var j = 0; j < 12; j++) {
-                                            var ang = (j * 30 - 90) * Math.PI / 180;
-                                            var nx = cx + rNumerals * Math.cos(ang);
-                                            var ny = cy + rNumerals * Math.sin(ang);
-                                            ctx.fillText(romans[j], nx, ny);
-                                        }
-                                    }
-
-                                    Connections {
-                                        target: Colors
-                                        function onPrimaryChanged() { faceCanvas.requestPaint(); }
-                                        function onOnSurfaceChanged() { faceCanvas.requestPaint(); }
-                                    }
-                                }
-
-                                // Hour hand
-                                Rectangle {
-                                    width: 4
-                                    height: analogClock.width * 0.27
-                                    radius: 2
-                                    color: Colors.primary
-                                    x: analogClock.cx - width / 2
-                                    y: analogClock.cy - height
-                                    transformOrigin: Item.Bottom
-                                    rotation: ((clockHeaderPane.now.getHours() % 12) * 30) +
-                                              (clockHeaderPane.now.getMinutes() * 0.5)
-                                }
-
-                                // Minute hand
-                                Rectangle {
-                                    width: 3
-                                    height: analogClock.width * 0.38
-                                    radius: 1.5
-                                    color: Colors.secondary
-                                    x: analogClock.cx - width / 2
-                                    y: analogClock.cy - height
-                                    transformOrigin: Item.Bottom
-                                    rotation: clockHeaderPane.now.getMinutes() * 6 +
-                                              clockHeaderPane.now.getSeconds() * 0.1
-                                }
-
-                                // Second hand (thin, accent)
-                                Rectangle {
-                                    width: 1.5
-                                    height: analogClock.width * 0.42
-                                    color: Colors.tertiary
-                                    x: analogClock.cx - width / 2
-                                    y: analogClock.cy - height
-                                    transformOrigin: Item.Bottom
-                                    rotation: clockHeaderPane.now.getSeconds() * 6
-                                }
-
-                                // Center cap
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 10
-                                    height: 10
-                                    radius: 5
-                                    color: Colors.primary
-                                    z: 10
-                                    border.color: Colors.background
-                                    border.width: 2
-                                }
+                            // Accent bar izquierda (brutalist)
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: 4
+                                color: Colors.primary
                             }
 
-                            // Date completa centrada debajo
+                            // Header chip
                             Text {
-                                Layout.alignment: Qt.AlignHCenter
-                                text: {
-                                    var s = clockHeaderPane.now.toLocaleDateString(Qt.locale(), "dddd, d MMMM yyyy");
-                                    return s.charAt(0).toUpperCase() + s.slice(1);
-                                }
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.topMargin: 10
+                                anchors.leftMargin: 16
+                                text: "Time · Calendar"
                                 color: Colors.outline
                                 font.family: Config.theme.font
-                                font.pixelSize: Styling.fontSize(0)
+                                font.pixelSize: Styling.fontSize(-1)
                                 font.weight: Font.Medium
                             }
 
-                            // Strip de context: semana ISO + día del año + % del año
-                            Item {
-                                Layout.alignment: Qt.AlignHCenter
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 22
+                            // Ghost digits (capa profunda, parallax fuerte y contrario)
+                            Text {
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: -4
+                                text: Qt.formatTime(calendarTab.now, "HH")
+                                font.family: Config.theme.monoFont
+                                font.pixelSize: 150
+                                font.weight: Font.DemiBold
+                                color: Colors.primary
+                                opacity: 0.08
+                                transform: Translate { x: calendarTab.px * -18; y: calendarTab.py * -12 }
+                            }
 
-                                // Compute helpers
-                                function isoWeek(d) {
-                                    var x = new Date(d.getTime());
-                                    x.setHours(0, 0, 0, 0);
-                                    // Jueves de esta semana
-                                    x.setDate(x.getDate() + 3 - (x.getDay() + 6) % 7);
-                                    var week1 = new Date(x.getFullYear(), 0, 4);
-                                    return 1 + Math.round(((x - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+                            // Dígitos reales (capa frontal, parallax leve)
+                            Row {
+                                anchors.centerIn: parent
+                                anchors.verticalCenterOffset: 4
+                                spacing: 2
+                                transform: Translate { x: calendarTab.px * 8; y: calendarTab.py * 6 }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Qt.formatTime(calendarTab.now, "HH")
+                                    font.family: Config.theme.monoFont
+                                    font.pixelSize: 58
+                                    font.weight: Font.DemiBold
+                                    color: Colors.overBackground
                                 }
-                                function dayOfYear(d) {
-                                    var start = new Date(d.getFullYear(), 0, 0);
-                                    return Math.floor((d - start) / 86400000);
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: ":"
+                                    font.family: Config.theme.monoFont
+                                    font.pixelSize: 58
+                                    font.weight: Font.DemiBold
+                                    color: Colors.primary
+                                    opacity: calendarTab.now.getSeconds() % 2 === 0 ? 1.0 : 0.3
+                                    Behavior on opacity { NumberAnimation { duration: 200 } }
                                 }
-                                function daysInYear(y) {
-                                    return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365;
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Qt.formatTime(calendarTab.now, "mm")
+                                    font.family: Config.theme.monoFont
+                                    font.pixelSize: 58
+                                    font.weight: Font.DemiBold
+                                    color: Colors.overBackground
+                                }
+                                // Segundos en bloque primary (superscript brutalist)
+                                Rectangle {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.verticalCenterOffset: -16
+                                    width: ssText.implicitWidth + 10
+                                    height: ssText.implicitHeight + 6
+                                    color: Colors.primary
+                                    Text {
+                                        id: ssText
+                                        anchors.centerIn: parent
+                                        text: Qt.formatTime(calendarTab.now, "ss")
+                                        font.family: Config.theme.monoFont
+                                        font.pixelSize: 16
+                                        font.weight: Font.Bold
+                                        color: Colors.background
+                                    }
+                                }
+                            }
+
+                            // Fecha + context strip abajo
+                            Column {
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.margins: 12
+                                anchors.leftMargin: 16
+                                spacing: 3
+
+                                Text {
+                                    text: {
+                                        var s = calendarTab.now.toLocaleDateString(Qt.locale(), "dddd, d MMMM yyyy");
+                                        return s.charAt(0).toUpperCase() + s.slice(1);
+                                    }
+                                    color: Colors.overBackground
+                                    font.family: Config.theme.font
+                                    font.pixelSize: Styling.fontSize(1)
+                                    font.weight: Font.Medium
                                 }
 
                                 Row {
-                                    anchors.centerIn: parent
-                                    spacing: 14
+                                    spacing: 8
+
+                                    function isoWeek(d) {
+                                        var x = new Date(d.getTime());
+                                        x.setHours(0, 0, 0, 0);
+                                        x.setDate(x.getDate() + 3 - (x.getDay() + 6) % 7);
+                                        var week1 = new Date(x.getFullYear(), 0, 4);
+                                        return 1 + Math.round(((x - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+                                    }
+                                    function dayOfYear(d) {
+                                        var start = new Date(d.getFullYear(), 0, 0);
+                                        return Math.floor((d - start) / 86400000);
+                                    }
+                                    function daysInYear(y) {
+                                        return ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 366 : 365;
+                                    }
 
                                     Text {
-                                        text: "Wk " + parent.parent.isoWeek(clockHeaderPane.now)
+                                        text: "Week " + parent.isoWeek(calendarTab.now)
                                         color: Colors.outline
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
+                                        font.weight: Font.Medium
                                     }
-                                    Rectangle {
-                                        width: 3; height: 3; radius: 1.5
-                                        color: Colors.outline
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
+                                    Text { text: "·"; color: Colors.outline; font.family: Config.theme.font; font.pixelSize: Styling.fontSize(-1) }
                                     Text {
-                                        property int doy: parent.parent.dayOfYear(clockHeaderPane.now)
-                                        property int diy: parent.parent.daysInYear(clockHeaderPane.now.getFullYear())
-                                        text: "Day " + doy + "/" + diy
+                                        text: "Day " + parent.dayOfYear(calendarTab.now) + "/" + parent.daysInYear(calendarTab.now.getFullYear())
                                         color: Colors.outline
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
+                                        font.weight: Font.Medium
                                     }
-                                    Rectangle {
-                                        width: 3; height: 3; radius: 1.5
-                                        color: Colors.outline
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
+                                    Text { text: "·"; color: Colors.outline; font.family: Config.theme.font; font.pixelSize: Styling.fontSize(-1) }
                                     Text {
-                                        property real pct: 100 * parent.parent.dayOfYear(clockHeaderPane.now) / parent.parent.daysInYear(clockHeaderPane.now.getFullYear())
-                                        text: pct.toFixed(0) + "% year"
+                                        text: (100 * parent.dayOfYear(calendarTab.now) / parent.daysInYear(calendarTab.now.getFullYear())).toFixed(0) + "% año"
                                         color: Colors.primary
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
@@ -710,322 +557,327 @@ PanelWindow {
                                 }
                             }
                         }
-                    }
 
-                    // ── DAY PROGRESS card: % del día / semana / mes / año
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 144
-                        color: Qt.rgba(0, 0, 0, 0.35)
-                        radius: 14
-                        border.color: Qt.rgba(1, 1, 1, 0.12)
-                        border.width: 1
+                        // ════ ELAPSED: barras de progreso brutalist ════
+                        StyledRect {
+                            id: elapsedCard
+                            variant: "internalbg"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: elapsedCol.implicitHeight + 28
+                            radius: 0
 
-                        function dayProgress(d) {
-                            return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
-                        }
-                        function weekProgress(d) {
-                            // Lunes como día 0
-                            var dow = (d.getDay() + 6) % 7;
-                            var elapsed = dow * 86400000 + (d - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime());
-                            return elapsed / (7 * 86400000);
-                        }
-                        function monthProgress(d) {
-                            var first = new Date(d.getFullYear(), d.getMonth(), 1);
-                            var next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-                            return (d - first) / (next - first);
-                        }
-                        function yearProgress(d) {
-                            var first = new Date(d.getFullYear(), 0, 1);
-                            var next = new Date(d.getFullYear() + 1, 0, 1);
-                            return (d - first) / (next - first);
-                        }
-
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 14
-                            spacing: 8
-
-                            Text {
-                                text: "Time elapsed"
-                                color: Qt.rgba(1, 1, 1, 0.6)
-                                font.family: Config.theme.font
-                                font.pixelSize: Styling.fontSize(-1)
-                                font.weight: Font.Medium
+                            function dayProgress(d) {
+                                return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
+                            }
+                            function weekProgress(d) {
+                                var dow = (d.getDay() + 6) % 7;
+                                var elapsed = dow * 86400000 + (d - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime());
+                                return elapsed / (7 * 86400000);
+                            }
+                            function monthProgress(d) {
+                                var first = new Date(d.getFullYear(), d.getMonth(), 1);
+                                var next = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+                                return (d - first) / (next - first);
+                            }
+                            function yearProgress(d) {
+                                var first = new Date(d.getFullYear(), 0, 1);
+                                var next = new Date(d.getFullYear() + 1, 0, 1);
+                                return (d - first) / (next - first);
                             }
 
-                            Repeater {
-                                model: [
-                                    { label: "Day",   getter: parent.parent.dayProgress },
-                                    { label: "Week",  getter: parent.parent.weekProgress },
-                                    { label: "Month", getter: parent.parent.monthProgress },
-                                    { label: "Year",  getter: parent.parent.yearProgress }
-                                ]
-
-                                Item {
-                                    required property var modelData
-                                    width: parent.width
-                                    height: 16
-
-                                    readonly property real pct: modelData.getter(clockHeaderPane.now)
-
-                                    Row {
-                                        anchors.fill: parent
-                                        spacing: 10
-
-                                        Text {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: 50
-                                            text: modelData.label
-                                            color: Qt.rgba(1, 1, 1, 0.7)
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-1)
-                                        }
-
-                                        Rectangle {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: parent.width - 50 - 10 - 50 - 10
-                                            height: 6
-                                            radius: 3
-                                            color: Qt.rgba(1, 1, 1, 0.12)
-                                            Rectangle {
-                                                width: parent.width * pct
-                                                height: parent.height
-                                                radius: parent.radius
-                                                color: "white"
-                                                Behavior on width { NumberAnimation { duration: 600 } }
-                                            }
-                                        }
-
-                                        Text {
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            width: 50
-                                            horizontalAlignment: Text.AlignRight
-                                            text: (pct * 100).toFixed(1) + "%"
-                                            color: "white"
-                                            font.family: Config.theme.monoFont
-                                            font.pixelSize: Styling.fontSize(-1)
-                                            font.weight: Font.Bold
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // ── CALENDAR (full month) — glass card
-                    Rectangle {
-                        id: calendarPane
-                        Layout.fillWidth: true
-                        color: Qt.rgba(0, 0, 0, 0.35)
-                        radius: 14
-                        border.color: Qt.rgba(1, 1, 1, 0.12)
-                        border.width: 1
-                        Layout.preferredHeight: calendarColumn.implicitHeight + 24
-
-                    property date currentDate: new Date()
-                    property date viewDate: new Date()
-
-                    Timer {
-                        interval: 60000
-                        running: dock.isOpen
-                        repeat: true
-                        onTriggered: calendarPane.currentDate = new Date()
-                    }
-
-                    function isSameDay(a, b) {
-                        return a.getFullYear() === b.getFullYear()
-                            && a.getMonth() === b.getMonth()
-                            && a.getDate() === b.getDate();
-                    }
-
-                    Column {
-                        id: calendarColumn
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.leftMargin: 12
-                        anchors.rightMargin: 12
-                        anchors.topMargin: 12
-                        spacing: 8
-
-                        // Month header con nav
-                        Item {
-                            width: parent.width
-                            height: 28
-
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 6
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: {
-                                        var m = calendarPane.viewDate.toLocaleDateString(Qt.locale(), "MMMM yyyy");
-                                        return m.charAt(0).toUpperCase() + m.slice(1);
-                                    }
-                                    color: Colors.overBackground
-                                    font.family: Config.theme.font
-                                    font.pixelSize: Styling.fontSize(1)
-                                    font.weight: Font.Medium
-                                }
-                            }
-
-                            Row {
+                            Column {
+                                id: elapsedCol
+                                anchors.left: parent.left
                                 anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 2
+                                anchors.top: parent.top
+                                anchors.margins: 14
+                                anchors.leftMargin: 18
+                                spacing: 9
+
+                                Row {
+                                    spacing: 8
+                                    Rectangle { width: 4; height: elapsedHdr.implicitHeight; color: Colors.primary; anchors.verticalCenter: parent.verticalCenter }
+                                    Text {
+                                        id: elapsedHdr
+                                        text: "Elapsed"
+                                        color: Colors.overBackground
+                                        font.family: Config.theme.font
+                                        font.pixelSize: Styling.fontSize(-1)
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
 
                                 Repeater {
                                     model: [
-                                        { ico: "", delta: -1 },
-                                        { ico: "", delta:  0 },
-                                        { ico: "", delta:  1 }
+                                        { label: "Day",   getter: elapsedCard.dayProgress },
+                                        { label: "Week",  getter: elapsedCard.weekProgress },
+                                        { label: "Month", getter: elapsedCard.monthProgress },
+                                        { label: "Year",  getter: elapsedCard.yearProgress }
                                     ]
+
                                     Item {
-                                        id: navBtn
                                         required property var modelData
-                                        width: 26
-                                        height: 26
-                                        Rectangle {
+                                        width: elapsedCol.width
+                                        height: 18
+                                        readonly property real pct: modelData.getter(calendarTab.now)
+
+                                        Row {
                                             anchors.fill: parent
-                                            radius: 13
-                                            color: navMa.containsMouse ? Styling.srItem("focus") : "transparent"
-                                            Behavior on color { ColorAnimation { duration: 100 } }
+                                            spacing: 10
+
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 50
+                                                text: modelData.label
+                                                color: Colors.outline
+                                                font.family: Config.theme.font
+                                                font.pixelSize: Styling.fontSize(-1)
+                                                font.weight: Font.Medium
+                                            }
+                                            Rectangle {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: parent.width - 50 - 10 - 56 - 10
+                                                height: 8
+                                                radius: 0
+                                                color: Qt.darker(Colors.surface, 1.5)
+                                                border.color: Colors.outline
+                                                border.width: 1
+                                                Rectangle {
+                                                    x: 1; y: 1
+                                                    width: Math.max(0, (parent.width - 2) * pct)
+                                                    height: parent.height - 2
+                                                    radius: 0
+                                                    color: Colors.primary
+                                                    Behavior on width { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
+                                                }
+                                            }
+                                            Text {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 56
+                                                horizontalAlignment: Text.AlignRight
+                                                text: (pct * 100).toFixed(1) + "%"
+                                                color: Colors.overBackground
+                                                font.family: Config.theme.font
+                                                font.pixelSize: Styling.fontSize(-1)
+                                                font.weight: Font.Medium
+                                            }
                                         }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ════ CALENDAR del mes (brutalist) ════
+                        StyledRect {
+                            id: calendarPane
+                            variant: "internalbg"
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 96 + 6 * monthGrid.cellW
+                            radius: 0
+
+                            property date currentDate: calendarTab.now
+                            property date viewDate: new Date()
+
+                            function isSameDay(a, b) {
+                                return a.getFullYear() === b.getFullYear()
+                                    && a.getMonth() === b.getMonth()
+                                    && a.getDate() === b.getDate();
+                            }
+
+                            Column {
+                                id: calendarColumn
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.leftMargin: 14
+                                anchors.rightMargin: 12
+                                anchors.topMargin: 12
+                                spacing: 8
+
+                                // Header mes + nav
+                                Item {
+                                    width: parent.width
+                                    height: 28
+
+                                    Row {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 8
+                                        Rectangle { width: 4; height: monthLbl.implicitHeight; color: Colors.primary; anchors.verticalCenter: parent.verticalCenter }
                                         Text {
-                                            anchors.centerIn: parent
-                                            text: navBtn.modelData.ico
-                                            font.family: "MaterialSymbolsRounded"
-                                            font.pixelSize: 16
+                                            id: monthLbl
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: {
+                                                var s = calendarPane.viewDate.toLocaleDateString(Qt.locale(), "MMMM yyyy");
+                                                return s.charAt(0).toUpperCase() + s.slice(1);
+                                            }
                                             color: Colors.overBackground
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(0)
+                                            font.weight: Font.DemiBold
                                         }
-                                        MouseArea {
-                                            id: navMa
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                if (navBtn.modelData.delta === 0) {
-                                                    calendarPane.viewDate = new Date();
-                                                } else {
-                                                    var d = new Date(calendarPane.viewDate);
-                                                    d.setMonth(d.getMonth() + navBtn.modelData.delta);
-                                                    calendarPane.viewDate = d;
+                                    }
+
+                                    Row {
+                                        anchors.right: parent.right
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 4
+
+                                        Repeater {
+                                            model: [
+                                                { ico: "‹", delta: -1 },
+                                                { ico: "●", delta:  0 },
+                                                { ico: "›", delta:  1 }
+                                            ]
+                                            Item {
+                                                id: navBtn
+                                                required property var modelData
+                                                width: 24
+                                                height: 24
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    radius: 0
+                                                    color: navMa.containsMouse ? Colors.primary : "transparent"
+                                                    border.color: Colors.outline
+                                                    border.width: 1
+                                                    Behavior on color { ColorAnimation { duration: 100 } }
+                                                }
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: navBtn.modelData.ico
+                                                    font.family: Config.theme.font
+                                                    font.pixelSize: navBtn.modelData.delta === 0 ? 10 : 16
+                                                    font.weight: Font.Bold
+                                                    color: navMa.containsMouse ? Colors.background : Colors.overBackground
+                                                }
+                                                MouseArea {
+                                                    id: navMa
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        if (navBtn.modelData.delta === 0) {
+                                                            calendarPane.viewDate = new Date();
+                                                        } else {
+                                                            var d = new Date(calendarPane.viewDate);
+                                                            d.setMonth(d.getMonth() + navBtn.modelData.delta);
+                                                            calendarPane.viewDate = d;
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }
-                        }
 
-                        // Día headers
-                        Row {
-                            id: weekHeaderRow
-                            spacing: 2
-                            property real cellW: (calendarColumn.width - 6 * spacing) / 7
+                                // Headers de día
+                                Row {
+                                    id: weekHeaderRow
+                                    spacing: 2
+                                    property real cellW: (calendarColumn.width - 6 * spacing) / 7
 
-                            Repeater {
-                                model: ["L", "M", "M", "J", "V", "S", "D"]
-                                Item {
-                                    required property var modelData
-                                    required property int index
-                                    width: weekHeaderRow.cellW
-                                    height: 18
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: parent.modelData
-                                        color: Colors.outline
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(-1)
-                                        font.weight: Font.Medium
+                                    Repeater {
+                                        model: ["L", "M", "M", "J", "V", "S", "D"]
+                                        Item {
+                                            required property var modelData
+                                            width: weekHeaderRow.cellW
+                                            height: 18
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: parent.modelData
+                                                color: Colors.outline
+                                                font.family: Config.theme.font
+                                                font.pixelSize: Styling.fontSize(-1)
+                                                font.weight: Font.Medium
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Grid del mes (42 celdas)
+                                Grid {
+                                    id: monthGrid
+                                    columns: 7
+                                    spacing: 2
+                                    property real cellW: (calendarColumn.width - 6 * spacing) / 7
+                                    property real cellH: Math.max(cellW, (calendarPane.height - 96) / 6)
+
+                                    property var monthCells: {
+                                        var view = calendarPane.viewDate;
+                                        var first = new Date(view.getFullYear(), view.getMonth(), 1);
+                                        var startWeekday = (first.getDay() + 6) % 7;
+                                        var start = new Date(first);
+                                        start.setDate(first.getDate() - startWeekday);
+                                        var cells = [];
+                                        for (var i = 0; i < 42; i++) {
+                                            var d = new Date(start);
+                                            d.setDate(start.getDate() + i);
+                                            cells.push({
+                                                date: d,
+                                                day: d.getDate(),
+                                                inMonth: d.getMonth() === view.getMonth(),
+                                                isToday: calendarPane.isSameDay(d, calendarPane.currentDate)
+                                            });
+                                        }
+                                        return cells;
+                                    }
+
+                                    Repeater {
+                                        model: monthGrid.monthCells
+                                        Item {
+                                            required property var modelData
+                                            width: monthGrid.cellW
+                                            height: monthGrid.cellH
+
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                anchors.margins: 1
+                                                radius: 0
+                                                color: parent.modelData.isToday
+                                                       ? Colors.primary
+                                                       : (cellHover.containsMouse ? Qt.darker(Colors.surface, 1.5) : "transparent")
+                                                border.color: parent.modelData.isToday
+                                                              ? Colors.primary
+                                                              : (cellHover.containsMouse ? Colors.outline : "transparent")
+                                                border.width: 1
+                                                Behavior on color { ColorAnimation { duration: 100 } }
+                                            }
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: parent.modelData.day
+                                                color: parent.modelData.isToday
+                                                       ? Colors.background
+                                                       : (parent.modelData.inMonth ? Colors.overBackground : Colors.outline)
+                                                opacity: parent.modelData.inMonth ? 1 : 0.4
+                                                font.family: Config.theme.font
+                                                font.pixelSize: Styling.fontSize(-1)
+                                                font.weight: parent.modelData.isToday ? Font.DemiBold : Font.Normal
+                                            }
+
+                                            MouseArea {
+                                                id: cellHover
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        // Grid del mes (42 celdas)
-                        Grid {
-                            id: monthGrid
-                            columns: 7
-                            spacing: 2
-                            property real cellW: (calendarColumn.width - 6 * spacing) / 7
-
-                            property var monthCells: {
-                                var view = calendarPane.viewDate;
-                                var first = new Date(view.getFullYear(), view.getMonth(), 1);
-                                var startWeekday = (first.getDay() + 6) % 7;  // Mon = 0
-                                var start = new Date(first);
-                                start.setDate(first.getDate() - startWeekday);
-                                var cells = [];
-                                for (var i = 0; i < 42; i++) {
-                                    var d = new Date(start);
-                                    d.setDate(start.getDate() + i);
-                                    cells.push({
-                                        date: d,
-                                        day: d.getDate(),
-                                        inMonth: d.getMonth() === view.getMonth(),
-                                        isToday: calendarPane.isSameDay(d, calendarPane.currentDate)
-                                    });
-                                }
-                                return cells;
-                            }
-
-                            Repeater {
-                                model: monthGrid.monthCells
-
-                                Item {
-                                    required property var modelData
-                                    width: monthGrid.cellW
-                                    height: monthGrid.cellW
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        anchors.margins: 2
-                                        radius: width / 2
-                                        color: parent.modelData.isToday
-                                               ? Styling.srItem("overprimary")
-                                               : (cellHover.containsMouse ? Styling.srItem("focus") : "transparent")
-                                        Behavior on color { ColorAnimation { duration: 100 } }
-                                    }
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: parent.modelData.day
-                                        color: parent.modelData.isToday
-                                               ? Colors.background
-                                               : (parent.modelData.inMonth ? Colors.overBackground : Colors.outline)
-                                        opacity: parent.modelData.inMonth ? 1 : 0.45
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(0)
-                                        font.weight: parent.modelData.isToday ? Font.Bold : Font.Normal
-                                    }
-
-                                    MouseArea {
-                                        id: cellHover
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                    Item { Layout.fillHeight: true } // spacer fin de tab Calendar
                     } // ColumnLayout calendarContent
                 } // Item calendarTab (TAB 0)
 
-                // ═══════ TAB 1: WEATHER (animated bg) ═══════════
+                // ═══════ TAB 1: WEATHER (brutalist matugen HUD) ═
                 Item {
                     id: weatherTab
                     Layout.fillWidth: true
                     implicitHeight: weatherContent.implicitHeight + 24
                     Layout.preferredHeight: implicitHeight
 
-                    // Categoría derivada del weather code para elegir animación
+                    // Categoría del weather code (animación + color reactivo)
                     readonly property string weatherCategory: {
                         var c = WeatherService.weatherCode;
                         if (c === 0) return WeatherService.isDay ? "sunny" : "night";
@@ -1037,65 +889,85 @@ PanelWindow {
                         return "cloudy";
                     }
 
-                    // ── BACKGROUND: gradient + animation
+                    // weatherCode → glyph Phosphor (hero + forecast)
+                    function codeIcon(code, day) {
+                        if (code === 0 || code === 1) return day ? Icons.sun : Icons.moon;
+                        if (code === 2) return day ? Icons.wCloudSun : Icons.wCloudMoon;
+                        if (code === 3) return Icons.wCloud;
+                        if (code === 45 || code === 48) return Icons.wCloudFog;
+                        if ((code >= 51 && code <= 57) || (code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return Icons.wCloudRain;
+                        if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return Icons.wCloudSnow;
+                        if (code >= 95) return Icons.wCloudLightning;
+                        return Icons.wCloud;
+                    }
+
+                    // Color del glow, reactivo al clima
+                    property color weatherAccent: {
+                        switch (weatherCategory) {
+                            case "sunny":  return Colors.tertiary;
+                            case "night":  return Colors.primary;
+                            case "rainy":  return Colors.secondary;
+                            case "stormy": return Colors.secondary;
+                            case "snowy":  return Colors.primary;
+                            case "foggy":  return Colors.outline;
+                            case "cloudy": return Colors.secondary;
+                        }
+                        return Colors.primary;
+                    }
+                    Behavior on weatherAccent { ColorAnimation { duration: 1200 } }
+
+                    // ── Parallax mouse-follow (hermano del tab Calendar)
+                    property real px: parallaxHoverW.hovered ? (parallaxHoverW.point.position.x / width - 0.5) * 2 : 0
+                    property real py: parallaxHoverW.hovered ? (parallaxHoverW.point.position.y / height - 0.5) * 2 : 0
+                    Behavior on px { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    Behavior on py { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                    HoverHandler { id: parallaxHoverW }
+
+                    // ── BACKGROUND: superficie matugen + grid + glow reactivo + animación clima
                     Rectangle {
                         id: weatherBg
                         anchors.fill: parent
                         radius: Styling.radius(8)
                         clip: true
+                        color: Qt.darker(Colors.surface, 1.25)
 
-                        // Gradient base — colores swap suave entre categorías
-                        gradient: Gradient {
-                            orientation: Gradient.Vertical
-                            GradientStop {
-                                position: 0.0
-                                color: {
-                                    switch (weatherTab.weatherCategory) {
-                                        case "sunny":  return Qt.lighter(Colors.primary, 1.2);
-                                        case "night":  return Qt.darker(Colors.background, 1.3);
-                                        case "rainy":  return Qt.darker(Colors.secondary, 1.3);
-                                        case "stormy": return Qt.darker(Colors.background, 1.6);
-                                        case "snowy":  return Qt.lighter(Colors.primary, 1.7);
-                                        case "foggy":  return Qt.lighter(Colors.surface, 1.3);
-                                        case "cloudy": return Qt.darker(Colors.secondary, 1.1);
-                                    }
-                                    return Colors.surface;
-                                }
-                                Behavior on color { ColorAnimation { duration: 1500 } }
-                            }
-                            GradientStop {
-                                position: 1.0
-                                color: {
-                                    switch (weatherTab.weatherCategory) {
-                                        case "sunny":  return Qt.lighter(Colors.tertiary, 1.25);
-                                        case "night":  return Qt.darker(Colors.surface, 1.5);
-                                        case "rainy":  return Qt.darker(Colors.surface, 1.3);
-                                        case "stormy": return Qt.darker(Colors.background, 2.0);
-                                        case "snowy":  return Qt.lighter(Colors.surface, 1.6);
-                                        case "foggy":  return Qt.lighter(Colors.surface, 1.1);
-                                        case "cloudy": return Qt.darker(Colors.surface, 1.2);
-                                    }
-                                    return Qt.darker(Colors.surface, 1.2);
-                                }
-                                Behavior on color { ColorAnimation { duration: 1500 } }
-                            }
-                        }
-
-                        // Difuminado/vignette — mismo tratamiento que el calendario,
-                        // debajo de los efectos de clima (que quedan resaltados encima).
+                        // Glow reactivo (parallax fuerte)
                         Rectangle {
-                            anchors.fill: parent
-                            gradient: Gradient {
-                                orientation: Gradient.Vertical
-                                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.28) }
-                                GradientStop { position: 0.5; color: Qt.rgba(0, 0, 0, 0.10) }
-                                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.52) }
-                            }
+                            width: parent.width * 1.1
+                            height: width
+                            radius: width / 2
+                            x: parent.width * 0.6 - width / 2
+                            y: -width * 0.35
+                            color: weatherTab.weatherAccent
+                            opacity: 0.16
+                            transform: Translate { x: weatherTab.px * 26; y: weatherTab.py * 20 }
                         }
 
-                        // Loader con la animación apropiada
+                        // Grid técnico (parallax medio)
+                        Canvas {
+                            id: wGridCanvas
+                            anchors.fill: parent
+                            antialiasing: false
+                            transform: Translate { x: weatherTab.px * 12; y: weatherTab.py * 10 }
+                            readonly property color lineColor: Colors.outline
+                            onPaint: {
+                                var ctx = getContext("2d");
+                                ctx.clearRect(0, 0, width, height);
+                                ctx.strokeStyle = lineColor;
+                                ctx.globalAlpha = 0.12;
+                                ctx.lineWidth = 1;
+                                var step = 26;
+                                for (var gx = -step; gx <= width + step; gx += step) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, height); ctx.stroke(); }
+                                for (var gy = -step; gy <= height + step; gy += step) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(width, gy); ctx.stroke(); }
+                            }
+                            Connections { target: Colors; function onOutlineChanged() { wGridCanvas.requestPaint(); } }
+                        }
+
+                        // Animación del clima (tinte matugen, sutil, parallax leve)
                         Loader {
                             anchors.fill: parent
+                            opacity: 0.5
+                            transform: Translate { x: weatherTab.px * 8; y: weatherTab.py * 6 }
                             sourceComponent: {
                                 switch (weatherTab.weatherCategory) {
                                     case "sunny":  return sunnyAnim;
@@ -1109,54 +981,106 @@ PanelWindow {
                                 return cloudyAnim;
                             }
                         }
+
+                        // Vignette inferior
+                        Rectangle {
+                            anchors.fill: parent
+                            gradient: Gradient {
+                                orientation: Gradient.Vertical
+                                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 0, 0.0) }
+                                GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.30) }
+                            }
+                        }
                     }
 
-                    // ── CONTENT: glass cards encima del bg
+                    // ── CONTENT
                     ColumnLayout {
                         id: weatherContent
                         anchors.fill: parent
                         anchors.margins: 12
-                        spacing: 10
+                        spacing: 8
 
-                        // HERO: emoji + temp + descripción
-                        Rectangle {
+                        // HERO: icono + temperatura gigante + descripción
+                        StyledRect {
+                            variant: "internalbg"
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 130
-                            color: Qt.rgba(0, 0, 0, 0.32)
-                            radius: 14
-                            border.color: Qt.rgba(1, 1, 1, 0.12)
-                            border.width: 1
+                            Layout.preferredHeight: 140
+                            radius: 0
 
+                            Rectangle { anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 4; color: Colors.primary }
+
+                            Text {
+                                anchors.top: parent.top; anchors.left: parent.left
+                                anchors.topMargin: 10; anchors.leftMargin: 16
+                                text: "Weather"
+                                color: Colors.outline
+                                font.family: Config.theme.font
+                                font.pixelSize: Styling.fontSize(-1)
+                                font.weight: Font.Medium
+                            }
+
+                            // Ghost glyph (parallax fuerte y contrario)
+                            Text {
+                                anchors.centerIn: parent
+                                text: weatherTab.codeIcon(WeatherService.weatherCode, WeatherService.isDay)
+                                font.family: Icons.font
+                                font.pixelSize: 150
+                                color: Colors.primary
+                                opacity: 0.07
+                                transform: Translate { x: weatherTab.px * -18; y: weatherTab.py * -12 }
+                            }
+
+                            // Foreground: icono + temp + desc
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 18
+                                anchors.verticalCenterOffset: 6
+                                spacing: 16
+                                transform: Translate { x: weatherTab.px * 8; y: weatherTab.py * 6 }
 
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: WeatherService.weatherSymbol || "🌡"
-                                    font.pixelSize: 64
+                                    text: weatherTab.codeIcon(WeatherService.weatherCode, WeatherService.isDay)
+                                    font.family: Icons.font
+                                    font.pixelSize: 60
+                                    color: Colors.primary
                                 }
 
                                 Column {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 2
-                                    Text {
-                                        text: Math.round(WeatherService.currentTemp) + "°"
-                                        color: "white"
-                                        font.family: Config.theme.font
-                                        font.pixelSize: 52
-                                        font.weight: Font.Light
+                                    spacing: 1
+
+                                    Row {
+                                        spacing: 0
+                                        Text {
+                                            text: Math.round(WeatherService.currentTemp)
+                                            color: Colors.overBackground
+                                            font.family: Config.theme.monoFont
+                                            font.pixelSize: 54
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Text {
+                                            anchors.top: parent.top
+                                            anchors.topMargin: 6
+                                            text: "°"
+                                            color: Colors.primary
+                                            font.family: Config.theme.monoFont
+                                            font.pixelSize: 30
+                                            font.weight: Font.DemiBold
+                                        }
                                     }
                                     Text {
-                                        text: WeatherService.weatherDescription || "—"
-                                        color: Qt.rgba(1, 1, 1, 0.78)
+                                        text: {
+                                            var s = WeatherService.weatherDescription || "—";
+                                            return s.charAt(0).toUpperCase() + s.slice(1);
+                                        }
+                                        color: Colors.overBackground
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(0)
+                                        font.weight: Font.Medium
                                     }
                                     Text {
-                                        text: "feels " + Math.round(WeatherService.apparentTemp) + "°  ·  " +
-                                              "↑" + Math.round(WeatherService.maxTemp) + "  ↓" + Math.round(WeatherService.minTemp)
-                                        color: Qt.rgba(1, 1, 1, 0.55)
+                                        text: "Feels " + Math.round(WeatherService.apparentTemp) + "°   ↑" + Math.round(WeatherService.maxTemp) + "°  ↓" + Math.round(WeatherService.minTemp) + "°"
+                                        color: Colors.outline
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
                                     }
@@ -1164,121 +1088,119 @@ PanelWindow {
                             }
                         }
 
-                        // STATS GRID 4 mini-cards
+                        // STATS: 4 bloques con glyph Phosphor
                         Row {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 72
+                            Layout.preferredHeight: 76
                             spacing: 8
 
                             Repeater {
                                 model: [
-                                    { ico: "💧", lab: "humid", val: Math.round(WeatherService.humidity) + "%" },
-                                    { ico: "☀️", lab: "UV",    val: WeatherService.uvIndex.toFixed(1) },
-                                    { ico: "⛅", lab: "rain",  val: Math.round(WeatherService.precipitationProbability) + "%" },
-                                    { ico: "🌬", lab: "wind",  val: WeatherService.windSpeed.toFixed(0) + "km/h" }
+                                    { ico: Icons.wHumidity, lab: "Humidity", val: Math.round(WeatherService.humidity) + "%" },
+                                    { ico: Icons.sun,       lab: "UV",       val: WeatherService.uvIndex.toFixed(1) },
+                                    { ico: Icons.wUmbrella, lab: "Rain",     val: Math.round(WeatherService.precipitationProbability) + "%" },
+                                    { ico: Icons.wWind,     lab: "Wind",     val: WeatherService.windSpeed.toFixed(0) }
                                 ]
-
-                                Rectangle {
+                                StyledRect {
                                     required property var modelData
+                                    variant: "internalbg"
                                     width: (weatherContent.width - 24) / 4
-                                    height: 72
-                                    color: Qt.rgba(0, 0, 0, 0.32)
-                                    radius: 12
-                                    border.color: Qt.rgba(1, 1, 1, 0.10)
-                                    border.width: 1
+                                    height: 76
+                                    radius: 0
 
                                     Column {
                                         anchors.centerIn: parent
-                                        spacing: 2
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.ico
-                                            font.pixelSize: 18
-                                        }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.val
-                                            color: "white"
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(0)
-                                            font.weight: Font.Bold
-                                        }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.lab
-                                            color: Qt.rgba(1, 1, 1, 0.55)
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-2)
-                                        }
+                                        spacing: 3
+                                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.ico; font.family: Icons.font; font.pixelSize: 20; color: Colors.primary }
+                                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.val; color: Colors.overBackground; font.family: Config.theme.monoFont; font.pixelSize: Styling.fontSize(1); font.weight: Font.DemiBold }
+                                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.lab; color: Colors.outline; font.family: Config.theme.font; font.pixelSize: Styling.fontSize(-2) }
                                     }
                                 }
                             }
                         }
 
-                        // WIND compass card
-                        Rectangle {
+                        // WIND: dial brutalist
+                        StyledRect {
+                            variant: "internalbg"
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 100
-                            color: Qt.rgba(0, 0, 0, 0.32)
-                            radius: 12
-                            border.color: Qt.rgba(1, 1, 1, 0.10)
-                            border.width: 1
+                            Layout.preferredHeight: 96
+                            radius: 0
 
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 22
+                                spacing: 24
 
                                 Item {
                                     width: 64; height: 64
                                     anchors.verticalCenter: parent.verticalCenter
 
                                     Canvas {
+                                        id: windDial
                                         anchors.fill: parent
                                         antialiasing: true
+                                        readonly property color ringColor: Colors.outline
                                         onPaint: {
                                             var ctx = getContext("2d");
                                             ctx.clearRect(0, 0, width, height);
                                             var cx = width / 2, cy = height / 2, r = Math.min(cx, cy) - 2;
-                                            ctx.strokeStyle = "rgba(255,255,255,0.4)";
-                                            ctx.lineWidth = 1;
-                                            ctx.beginPath();
-                                            ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-                                            ctx.stroke();
-                                            ctx.fillStyle = "rgba(255,255,255,0.6)";
-                                            ctx.font = "9px " + Config.theme.font;
+                                            ctx.strokeStyle = ringColor;
+                                            ctx.lineWidth = 1.5;
+                                            ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.stroke();
+                                            // ticks afilados cada 45°
+                                            for (var i = 0; i < 8; i++) {
+                                                var a = i * Math.PI / 4 - Math.PI / 2;
+                                                var inner = i % 2 === 0 ? r - 7 : r - 4;
+                                                ctx.beginPath();
+                                                ctx.moveTo(cx + inner * Math.cos(a), cy + inner * Math.sin(a));
+                                                ctx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                                                ctx.stroke();
+                                            }
+                                            ctx.fillStyle = ringColor;
+                                            ctx.font = "600 9px " + Config.theme.font;
                                             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-                                            ctx.fillText("N", cx, cy - r + 8);
-                                            ctx.fillText("E", cx + r - 8, cy);
-                                            ctx.fillText("S", cx, cy + r - 8);
-                                            ctx.fillText("W", cx - r + 8, cy);
+                                            ctx.fillText("N", cx, cy - r + 9);
                                         }
+                                        Connections { target: Colors; function onOutlineChanged() { windDial.requestPaint(); } }
                                     }
                                     Rectangle {
-                                        width: 2; height: 24; radius: 1
+                                        width: 3; height: 26; radius: 0
                                         color: Colors.primary
                                         x: parent.width / 2 - width / 2
                                         y: parent.height / 2 - height
                                         transformOrigin: Item.Bottom
                                         rotation: WeatherService.windDirection + 180
+                                        Behavior on rotation { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
                                     }
+                                    Rectangle { anchors.centerIn: parent; width: 6; height: 6; radius: 0; color: Colors.primary }
                                 }
 
                                 Column {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 2
-                                    Text {
-                                        text: WeatherService.windSpeed.toFixed(1) + " km/h"
-                                        color: "white"
-                                        font.family: Config.theme.font
-                                        font.pixelSize: Styling.fontSize(3)
-                                        font.weight: Font.Bold
+                                    Row {
+                                        spacing: 4
+                                        Text {
+                                            text: WeatherService.windSpeed.toFixed(0)
+                                            color: Colors.overBackground
+                                            font.family: Config.theme.monoFont
+                                            font.pixelSize: Styling.fontSize(5)
+                                            font.weight: Font.DemiBold
+                                        }
+                                        Text {
+                                            anchors.bottom: parent.bottom
+                                            anchors.bottomMargin: 4
+                                            text: "km/h"
+                                            color: Colors.outline
+                                            font.family: Config.theme.font
+                                            font.pixelSize: Styling.fontSize(-1)
+                                        }
                                     }
                                     Text {
                                         text: {
-                                            var dirs = ["N","NE","E","SE","S","SW","W","NW"];
-                                            return "from " + dirs[Math.round(WeatherService.windDirection / 45) % 8];
+                                            var dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+                                            return "From " + dirs[Math.round(WeatherService.windDirection / 45) % 8];
                                         }
-                                        color: Qt.rgba(1, 1, 1, 0.55)
+                                        color: Colors.outline
                                         font.family: Config.theme.font
                                         font.pixelSize: Styling.fontSize(-1)
                                     }
@@ -1287,130 +1209,120 @@ PanelWindow {
                         }
 
                         // FORECAST 5 días
-                        Rectangle {
+                        StyledRect {
+                            variant: "internalbg"
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 110
-                            color: Qt.rgba(0, 0, 0, 0.32)
-                            radius: 12
-                            border.color: Qt.rgba(1, 1, 1, 0.10)
-                            border.width: 1
+                            Layout.preferredHeight: 124
+                            radius: 0
                             visible: WeatherService.forecast.length > 0
 
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 6
+                            Column {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                anchors.leftMargin: 16
+                                spacing: 10
 
-                                Repeater {
-                                    model: WeatherService.forecast.slice(0, 5)
-                                    Column {
-                                        required property var modelData
-                                        spacing: 4
-                                        width: (weatherContent.width - 24 - 4 * 6) / 5
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.dayName
-                                            color: Qt.rgba(1, 1, 1, 0.75)
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-1)
-                                            font.weight: Font.Medium
-                                        }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.emoji
-                                            font.pixelSize: Styling.fontSize(3)
-                                        }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: Math.round(modelData.maxTemp) + "°"
-                                            color: "white"
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(0)
-                                            font.weight: Font.Bold
-                                        }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: Math.round(modelData.minTemp) + "°"
-                                            color: Qt.rgba(1, 1, 1, 0.5)
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-1)
+                                Row {
+                                    spacing: 8
+                                    Rectangle { width: 4; height: fcHdr.implicitHeight; color: Colors.primary; anchors.verticalCenter: parent.verticalCenter }
+                                    Text {
+                                        id: fcHdr
+                                        text: "Forecast"
+                                        color: Colors.overBackground
+                                        font.family: Config.theme.font
+                                        font.pixelSize: Styling.fontSize(-1)
+                                        font.weight: Font.DemiBold
+                                    }
+                                }
+
+                                Row {
+                                    width: parent.width
+                                    spacing: 4
+                                    Repeater {
+                                        model: WeatherService.forecast.slice(0, 5)
+                                        Column {
+                                            required property var modelData
+                                            width: (parent.width - 4 * 4) / 5
+                                            spacing: 4
+                                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.dayName; color: Colors.outline; font.family: Config.theme.font; font.pixelSize: Styling.fontSize(-1); font.weight: Font.Medium }
+                                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: weatherTab.codeIcon(modelData.weatherCode, true); font.family: Icons.font; font.pixelSize: 22; color: Colors.primary }
+                                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(modelData.maxTemp) + "°"; color: Colors.overBackground; font.family: Config.theme.monoFont; font.pixelSize: Styling.fontSize(0); font.weight: Font.DemiBold }
+                                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: Math.round(modelData.minTemp) + "°"; color: Colors.outline; font.family: Config.theme.monoFont; font.pixelSize: Styling.fontSize(-1) }
                                         }
                                     }
                                 }
                             }
                         }
 
-                        // HOURLY GRAPH 24h
-                        Rectangle {
+                        // HOURLY 24h (curva)
+                        StyledRect {
+                            variant: "internalbg"
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 110
-                            color: Qt.rgba(0, 0, 0, 0.32)
-                            radius: 12
-                            border.color: Qt.rgba(1, 1, 1, 0.10)
-                            border.width: 1
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 116
+                            radius: 0
                             visible: WeatherService.hourly.length > 0
 
                             Column {
                                 anchors.fill: parent
-                                anchors.margins: 8
-                                spacing: 4
-                                Text {
-                                    text: "Next 24h"
-                                    color: Qt.rgba(1, 1, 1, 0.6)
-                                    font.family: Config.theme.font
-                                    font.pixelSize: Styling.fontSize(-1)
-                                    font.weight: Font.Medium
+                                anchors.margins: 12
+                                anchors.leftMargin: 16
+                                spacing: 6
+
+                                Row {
+                                    spacing: 8
+                                    Rectangle { width: 4; height: hrHdr.implicitHeight; color: Colors.primary; anchors.verticalCenter: parent.verticalCenter }
+                                    Text {
+                                        id: hrHdr
+                                        text: "Next 24h"
+                                        color: Colors.overBackground
+                                        font.family: Config.theme.font
+                                        font.pixelSize: Styling.fontSize(-1)
+                                        font.weight: Font.DemiBold
+                                    }
                                 }
+
                                 Canvas {
+                                    id: hourlyCanvas
                                     width: parent.width
-                                    height: parent.height - 24
+                                    height: parent.height - 26
                                     antialiasing: true
                                     property var d: WeatherService.hourly
+                                    readonly property color curveColor: Colors.primary
+                                    readonly property color labelColor: Colors.outline
                                     onDChanged: requestPaint()
-
+                                    Connections { target: Colors; function onPrimaryChanged() { hourlyCanvas.requestPaint(); } }
                                     onPaint: {
                                         var ctx = getContext("2d");
                                         ctx.clearRect(0, 0, width, height);
                                         if (!d || d.length === 0) return;
                                         var w = width, h = height, pad = 8, n = d.length;
                                         var minT = d[0].temp, maxT = d[0].temp;
-                                        for (var i = 0; i < n; i++) {
-                                            if (d[i].temp < minT) minT = d[i].temp;
-                                            if (d[i].temp > maxT) maxT = d[i].temp;
-                                        }
+                                        for (var i = 0; i < n; i++) { if (d[i].temp < minT) minT = d[i].temp; if (d[i].temp > maxT) maxT = d[i].temp; }
                                         var range = maxT - minT || 1;
-                                        // Fill bajo la curva
-                                        ctx.fillStyle = "rgba(255,255,255,0.10)";
+                                        function px(j) { return pad + (j / (n - 1)) * (w - 2 * pad); }
+                                        function py(t) { return h - pad - ((t - minT) / range) * (h - 2 * pad - 12); }
+                                        // fill bajo la curva (primary translúcido)
+                                        ctx.fillStyle = Qt.rgba(curveColor.r, curveColor.g, curveColor.b, 0.14);
                                         ctx.beginPath();
-                                        ctx.moveTo(pad, h - pad);
-                                        for (var j = 0; j < n; j++) {
-                                            var x = pad + (j / (n - 1)) * (w - 2 * pad);
-                                            var y = h - pad - ((d[j].temp - minT) / range) * (h - 2 * pad - 12);
-                                            ctx.lineTo(x, y);
-                                        }
-                                        ctx.lineTo(w - pad, h - pad);
-                                        ctx.closePath();
-                                        ctx.fill();
-                                        // Curva
-                                        ctx.strokeStyle = "white";
-                                        ctx.lineWidth = 2;
+                                        ctx.moveTo(px(0), h - pad);
+                                        for (var j = 0; j < n; j++) ctx.lineTo(px(j), py(d[j].temp));
+                                        ctx.lineTo(px(n - 1), h - pad);
+                                        ctx.closePath(); ctx.fill();
+                                        // curva
+                                        ctx.strokeStyle = curveColor; ctx.lineWidth = 2;
                                         ctx.beginPath();
-                                        for (var k = 0; k < n; k++) {
-                                            var xx = pad + (k / (n - 1)) * (w - 2 * pad);
-                                            var yy = h - pad - ((d[k].temp - minT) / range) * (h - 2 * pad - 12);
-                                            if (k === 0) ctx.moveTo(xx, yy);
-                                            else ctx.lineTo(xx, yy);
-                                        }
+                                        for (var k = 0; k < n; k++) { if (k === 0) ctx.moveTo(px(k), py(d[k].temp)); else ctx.lineTo(px(k), py(d[k].temp)); }
                                         ctx.stroke();
-                                        // Hour labels
-                                        ctx.fillStyle = "rgba(255,255,255,0.55)";
+                                        // labels horarios
+                                        ctx.fillStyle = labelColor;
                                         ctx.font = "10px " + Config.theme.font;
                                         ctx.textAlign = "center";
                                         var marks = [0, 6, 12, 18, n - 1];
                                         for (var m = 0; m < marks.length; m++) {
                                             var mi = marks[m];
                                             if (mi >= n) continue;
-                                            var mx = pad + (mi / (n - 1)) * (w - 2 * pad);
-                                            ctx.fillText(d[mi].time.split("T")[1].substring(0, 5), mx, h - 1);
+                                            ctx.fillText(d[mi].time.split("T")[1].substring(0, 5), px(mi), h - 1);
                                         }
                                     }
                                 }
@@ -1418,43 +1330,38 @@ PanelWindow {
                         }
 
                         // SUN / MOON
-                        Rectangle {
+                        StyledRect {
+                            variant: "internalbg"
                             Layout.fillWidth: true
                             Layout.preferredHeight: 64
-                            color: Qt.rgba(0, 0, 0, 0.32)
-                            radius: 12
-                            border.color: Qt.rgba(1, 1, 1, 0.10)
-                            border.width: 1
-
-                            function moonPhase(date) {
-                                var lp = 2551443;
-                                var nf = new Date(1970, 0, 7, 20, 35, 0);
-                                var phase = ((date.getTime() / 1000) - nf.getTime() / 1000) % lp;
-                                var f = phase / lp;
-                                return ["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"][Math.floor(f * 8) % 8];
-                            }
+                            radius: 0
 
                             Row {
                                 anchors.centerIn: parent
-                                spacing: 22
+                                spacing: 28
 
                                 Repeater {
                                     model: [
-                                        { ico: "🌅", lab: "sunrise", val: WeatherService.sunrise || "—" },
-                                        { ico: "🌇", lab: "sunset",  val: WeatherService.sunset  || "—" },
-                                        { ico: parent.parent.moonPhase(clockHeaderPane.now), lab: "moon", val: "" }
+                                        { ico: Icons.wSunHorizon, lab: "Sunrise", val: WeatherService.sunrise || "—" },
+                                        { ico: Icons.wSunHorizon, lab: "Sunset",  val: WeatherService.sunset  || "—" },
+                                        { ico: Icons.moon,        lab: "Moon",    val: "" }
                                     ]
-                                    Column {
+                                    Row {
                                         required property var modelData
-                                        spacing: 2
-                                        Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.ico; font.pixelSize: 16 }
-                                        Text {
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            text: modelData.val !== "" ? modelData.val : modelData.lab
-                                            color: "white"
-                                            font.family: Config.theme.font
-                                            font.pixelSize: Styling.fontSize(-1)
-                                            font.weight: modelData.val !== "" ? Font.Bold : Font.Normal
+                                        spacing: 8
+                                        Text { anchors.verticalCenter: parent.verticalCenter; text: modelData.ico; font.family: Icons.font; font.pixelSize: 22; color: Colors.primary }
+                                        Column {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            spacing: 0
+                                            Text { text: modelData.lab; color: Colors.outline; font.family: Config.theme.font; font.pixelSize: Styling.fontSize(-2) }
+                                            Text {
+                                                text: modelData.val !== "" ? modelData.val : "—"
+                                                color: Colors.overBackground
+                                                font.family: Config.theme.monoFont
+                                                font.pixelSize: Styling.fontSize(0)
+                                                font.weight: Font.DemiBold
+                                                visible: modelData.val !== ""
+                                            }
                                         }
                                     }
                                 }
@@ -1462,51 +1369,29 @@ PanelWindow {
                         }
                     }
 
-                    // ── ANIMATION COMPONENTS (siblings as Component definitions)
+                    // ── ANIMATION COMPONENTS (tinte matugen)
                     Component {
                         id: sunnyAnim
                         Item {
                             Item {
-                                id: sun
                                 width: 120; height: 120
                                 x: parent.width - width - 28
                                 y: 28
-                                // Halo difuminado simulado con 3 círculos concentricos
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 140; height: 140; radius: 70
-                                    color: Qt.rgba(1, 0.95, 0.6, 0.15)
-                                }
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 110; height: 110; radius: 55
-                                    color: Qt.rgba(1, 0.92, 0.5, 0.3)
-                                }
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 80; height: 80; radius: 40
-                                    color: "#fcc14e"
-                                }
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 60; height: 60; radius: 30
-                                    color: "#fff0b0"
-                                }
-                                // Rotating rays
+                                Rectangle { anchors.centerIn: parent; width: 140; height: 140; radius: 70; color: Qt.rgba(Colors.tertiary.r, Colors.tertiary.g, Colors.tertiary.b, 0.12) }
+                                Rectangle { anchors.centerIn: parent; width: 110; height: 110; radius: 55; color: Qt.rgba(Colors.tertiary.r, Colors.tertiary.g, Colors.tertiary.b, 0.22) }
+                                Rectangle { anchors.centerIn: parent; width: 80; height: 80; radius: 40; color: Colors.tertiary }
+                                Rectangle { anchors.centerIn: parent; width: 60; height: 60; radius: 30; color: Qt.lighter(Colors.tertiary, 1.3) }
                                 Item {
                                     anchors.centerIn: parent
                                     width: 180; height: 180
-                                    NumberAnimation on rotation {
-                                        from: 0; to: 360; duration: 30000; loops: Animation.Infinite
-                                    }
+                                    NumberAnimation on rotation { from: 0; to: 360; duration: 30000; loops: Animation.Infinite }
                                     Repeater {
                                         model: 8
                                         Rectangle {
                                             required property int index
                                             width: 2; height: 28; radius: 1
-                                            color: Qt.rgba(1, 0.95, 0.6, 0.45)
-                                            x: 180 / 2 - 1
-                                            y: 0
+                                            color: Qt.rgba(Colors.tertiary.r, Colors.tertiary.g, Colors.tertiary.b, 0.4)
+                                            x: 180 / 2 - 1; y: 0
                                             transformOrigin: Item.Bottom
                                             rotation: index * 45
                                         }
@@ -1528,7 +1413,7 @@ PanelWindow {
                                     width: 1 + Math.random() * 1.5
                                     height: width
                                     radius: width / 2
-                                    color: "white"
+                                    color: Colors.overBackground
                                     SequentialAnimation on opacity {
                                         loops: Animation.Infinite
                                         NumberAnimation { from: 0.2; to: 1.0; duration: 1500 + Math.random() * 2000 }
@@ -1536,16 +1421,11 @@ PanelWindow {
                                     }
                                 }
                             }
-                            // Luna
                             Rectangle {
                                 width: 80; height: 80; radius: 40
                                 x: parent.width - 110; y: 30
-                                color: "#e8e6dc"
-                                Rectangle {
-                                    width: 65; height: 65; radius: 32
-                                    x: 20; y: -5
-                                    color: "#0c1a3e"
-                                }
+                                color: Qt.lighter(Colors.tertiary, 1.2)
+                                Rectangle { width: 65; height: 65; radius: 32; x: 20; y: -5; color: Qt.darker(Colors.surface, 1.25) }
                             }
                         }
                     }
@@ -1560,14 +1440,10 @@ PanelWindow {
                                     x: Math.random() * parent.width
                                     width: 1
                                     height: 8 + Math.random() * 8
-                                    color: Qt.rgba(0.7, 0.85, 1, 0.5)
+                                    color: Qt.rgba(Colors.primary.r, Colors.primary.g, Colors.primary.b, 0.5)
                                     SequentialAnimation on y {
                                         loops: Animation.Infinite
-                                        NumberAnimation {
-                                            from: -20; to: parent.height + 20
-                                            duration: 800 + Math.random() * 800
-                                            easing.type: Easing.InQuad
-                                        }
+                                        NumberAnimation { from: -20; to: parent.height + 20; duration: 800 + Math.random() * 800; easing.type: Easing.InQuad }
                                     }
                                 }
                             }
@@ -1584,29 +1460,24 @@ PanelWindow {
                                     x: Math.random() * parent.width
                                     width: 1.5
                                     height: 12 + Math.random() * 10
-                                    color: Qt.rgba(0.6, 0.7, 0.9, 0.6)
+                                    color: Qt.rgba(Colors.primary.r, Colors.primary.g, Colors.primary.b, 0.6)
                                     SequentialAnimation on y {
                                         loops: Animation.Infinite
-                                        NumberAnimation {
-                                            from: -30; to: parent.height + 20
-                                            duration: 600 + Math.random() * 500
-                                            easing.type: Easing.InQuad
-                                        }
+                                        NumberAnimation { from: -30; to: parent.height + 20; duration: 600 + Math.random() * 500; easing.type: Easing.InQuad }
                                     }
                                 }
                             }
-                            // Flash de rayo periódico
                             Rectangle {
                                 anchors.fill: parent
-                                color: "white"
+                                color: Colors.overBackground
                                 opacity: 0
                                 SequentialAnimation on opacity {
                                     loops: Animation.Infinite
                                     PauseAnimation { duration: 4000 + Math.random() * 4000 }
-                                    NumberAnimation { to: 0.55; duration: 60 }
+                                    NumberAnimation { to: 0.45; duration: 60 }
                                     NumberAnimation { to: 0; duration: 200 }
                                     PauseAnimation { duration: 80 }
-                                    NumberAnimation { to: 0.4; duration: 50 }
+                                    NumberAnimation { to: 0.3; duration: 50 }
                                     NumberAnimation { to: 0; duration: 250 }
                                 }
                             }
@@ -1623,15 +1494,11 @@ PanelWindow {
                                     readonly property real startX: Math.random() * parent.width
                                     readonly property real swayAmp: 12 + Math.random() * 12
                                     text: "❄"
-                                    color: "white"
+                                    color: Colors.overBackground
                                     opacity: 0.6 + Math.random() * 0.4
                                     font.pixelSize: 8 + Math.random() * 10
                                     x: startX
-                                    NumberAnimation on y {
-                                        loops: Animation.Infinite
-                                        from: -10; to: parent.height + 10
-                                        duration: 5000 + Math.random() * 3000
-                                    }
+                                    NumberAnimation on y { loops: Animation.Infinite; from: -10; to: parent.height + 10; duration: 5000 + Math.random() * 3000 }
                                     SequentialAnimation on x {
                                         loops: Animation.Infinite
                                         NumberAnimation { from: startX - swayAmp; to: startX + swayAmp; duration: 2500; easing.type: Easing.InOutSine }
@@ -1652,14 +1519,9 @@ PanelWindow {
                                     width: parent.width * 1.3
                                     height: 40 + Math.random() * 30
                                     radius: 20
-                                    color: Qt.rgba(1, 1, 1, 0.10)
+                                    color: Qt.rgba(Colors.overBackground.r, Colors.overBackground.g, Colors.overBackground.b, 0.08)
                                     y: index * (parent.height / 6) + Math.random() * 30
-                                    NumberAnimation on x {
-                                        loops: Animation.Infinite
-                                        from: -parent.width * 0.3
-                                        to: parent.width * 0.1
-                                        duration: 18000 + Math.random() * 10000
-                                    }
+                                    NumberAnimation on x { loops: Animation.Infinite; from: -parent.width * 0.3; to: parent.width * 0.1; duration: 18000 + Math.random() * 10000 }
                                 }
                             }
                         }
@@ -1676,22 +1538,9 @@ PanelWindow {
                                     readonly property real ch: 30 + Math.random() * 20
                                     width: cw; height: ch
                                     y: index * (parent.height / 6) + 10 + Math.random() * 20
-                                    NumberAnimation on x {
-                                        loops: Animation.Infinite
-                                        from: -150; to: parent.width + 150
-                                        duration: 22000 + Math.random() * 18000
-                                    }
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: parent.height / 2
-                                        color: Qt.rgba(1, 1, 1, 0.18)
-                                    }
-                                    Rectangle {
-                                        width: parent.width * 0.5; height: parent.height * 0.9
-                                        radius: height / 2
-                                        x: parent.width * 0.15; y: -parent.height * 0.35
-                                        color: Qt.rgba(1, 1, 1, 0.16)
-                                    }
+                                    NumberAnimation on x { loops: Animation.Infinite; from: -150; to: parent.width + 150; duration: 22000 + Math.random() * 18000 }
+                                    Rectangle { anchors.fill: parent; radius: parent.height / 2; color: Qt.rgba(Colors.overBackground.r, Colors.overBackground.g, Colors.overBackground.b, 0.14) }
+                                    Rectangle { width: parent.width * 0.5; height: parent.height * 0.9; radius: height / 2; x: parent.width * 0.15; y: -parent.height * 0.35; color: Qt.rgba(Colors.overBackground.r, Colors.overBackground.g, Colors.overBackground.b, 0.12) }
                                 }
                             }
                         }
