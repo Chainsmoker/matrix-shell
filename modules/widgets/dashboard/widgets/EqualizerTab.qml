@@ -39,6 +39,7 @@ Rectangle {
 
     Component.onCompleted: {
         EasyEffectsService.initialize();
+        EasyEffectsService.checkRouting();
         // Restaurar la selección previa si el usuario ya tocó el EQ en esta
         // sesión (el tab se destruye al cambiar de pestaña). Si no, arrancar en
         // Flat sin auto-aplicar (no pisar el EQ actual sólo por abrir el tab).
@@ -282,6 +283,79 @@ Rectangle {
                 font.pixelSize: Styling.monoFontSize(0)
                 font.bold: true
                 color: Colors.tertiary
+            }
+        }
+
+        // ── Aviso: el audio no pasa por EasyEffects ───────────────────────────
+        // El EQ sólo afecta el sonido si el sink de EE es el default del sistema.
+        // Si no lo es, el preset se carga pero no se oye; ofrecemos enrutarlo.
+        Rectangle {
+            id: routingBanner
+            Layout.fillWidth: true
+            Layout.preferredHeight: 40
+            visible: EasyEffectsService.available && !EasyEffectsService.audioRouted
+            radius: Styling.radius(3)
+            color: Qt.rgba(Colors.tertiary.r, Colors.tertiary.g, Colors.tertiary.b, 0.12)
+            border.width: 1
+            border.color: Qt.rgba(Colors.tertiary.r, Colors.tertiary.g, Colors.tertiary.b, 0.5)
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 8
+                spacing: 8
+
+                Text {
+                    text: Icons.alert
+                    font.family: Icons.font
+                    font.pixelSize: 16
+                    color: Colors.tertiary
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "El audio no pasa por EasyEffects — el EQ no se oye"
+                    font.family: Config.theme.monoFont
+                    font.pixelSize: Styling.monoFontSize(-1)
+                    color: Colors.overBackground
+                    wrapMode: Text.WordWrap
+                }
+
+                Rectangle {
+                    Layout.preferredHeight: 26
+                    Layout.preferredWidth: routeTxt.implicitWidth + 22
+                    radius: Styling.radius(3)
+                    color: routeMa.containsMouse ? Colors.primary : Colors.surfaceContainerHigh
+                    border.width: 1
+                    border.color: Colors.primary
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 5
+                        Text {
+                            text: Icons.plug
+                            font.family: Icons.font
+                            font.pixelSize: 13
+                            color: routeMa.containsMouse ? Styling.srItem("primary") : Colors.primary
+                        }
+                        Text {
+                            id: routeTxt
+                            text: "Enrutar"
+                            font.family: Config.theme.monoFont
+                            font.pixelSize: Styling.monoFontSize(-1)
+                            font.bold: true
+                            color: routeMa.containsMouse ? Styling.srItem("primary") : Colors.overBackground
+                        }
+                    }
+
+                    MouseArea {
+                        id: routeMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: EasyEffectsService.routeThroughEE()
+                    }
+                }
             }
         }
 

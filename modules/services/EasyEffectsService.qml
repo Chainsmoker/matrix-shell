@@ -30,6 +30,22 @@ Singleton {
     property var uiBands: []
     property bool uiPending: false
 
+    // ¿El audio del sistema pasa por EasyEffects? Es true cuando el sink virtual
+    // "easyeffects_sink" es el sink por defecto. Si es false, el EQ no se oye
+    // aunque el preset esté cargado, porque las apps salen directo al hardware.
+    property bool audioRouted: false
+
+    function checkRouting() {
+        routingCheckProcess.buffer = "";
+        routingCheckProcess.running = true;
+    }
+
+    // Pone el sink de EasyEffects como salida por defecto (persiste vía
+    // WirePlumber). Resuelve el node id por nombre para no hardcodearlo.
+    function routeThroughEE() {
+        routeProcess.running = true;
+    }
+
     // Toggle bypass state
     function toggleBypass() {
         bypassToggleProcess.command = ["easyeffects", "-b", bypassed ? "2" : "1"];
@@ -145,6 +161,7 @@ Singleton {
                 bypassStateProcess.running = true;
                 presetsProcess.running = true;
                 activePresetsProcess.running = true;
+                root.checkRouting();
             }
         }
     }
@@ -186,6 +203,34 @@ Singleton {
     Process {
         id: writePresetProcess
         running: false
+    }
+
+    // ¿El sink por defecto es el de EasyEffects?
+    Process {
+        id: routingCheckProcess
+        command: ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"]
+        running: false
+        property string buffer: ""
+        environment: ({ LANG: "C.UTF-8", LC_ALL: "C.UTF-8" })
+        stdout: SplitParser {
+            onRead: data => routingCheckProcess.buffer += data + "\n"
+        }
+        onExited: code => {
+            // Match exacto del node.name del sink por defecto. (El substring suelto
+            // "easyeffects_sink" también aparece en los links de OTROS sinks porque
+            // EE les manda su salida → daría falso positivo.)
+            root.audioRouted = (code === 0 && routingCheckProcess.buffer.indexOf('node.name = "easyeffects_sink"') >= 0);
+            routingCheckProcess.buffer = "";
+        }
+    }
+
+    // Setea easyeffects_sink como default (resuelve el id por nombre).
+    Process {
+        id: routeProcess
+        command: ["bash", "-c",
+            "id=$(wpctl status | grep -F 'Easy Effects Sink' | grep -oE '[0-9]+\\.' | head -1 | tr -d '.'); [ -n \"$id\" ] && wpctl set-default \"$id\""]
+        running: false
+        onExited: root.checkRouting()
     }
 
     // Refresh delay after preset load
@@ -294,6 +339,7 @@ Singleton {
         onTriggered: {
             bypassStateProcess.running = true;
             activePresetsProcess.running = true;
+            root.checkRouting();
         }
     }
 }
