@@ -21,6 +21,15 @@ Singleton {
     property string activeOutputPreset: ""
     property string activeInputPreset: ""
 
+    // Estado de UI del EqualizerTab. El tab se destruye al cambiar de pestaña en
+    // el dashboard, así que su `activePreset`/curva local se perdían (volvían a
+    // "Flat" al reabrir). Lo guardamos acá, en el singleton, que sobrevive a la
+    // recarga del tab. (No persiste entre reinicios de la shell; el EQ en sí sí,
+    // porque EasyEffects mantiene cargado el preset ambxst_eq.)
+    property string uiPreset: ""
+    property var uiBands: []
+    property bool uiPending: false
+
     // Toggle bypass state
     function toggleBypass() {
         bypassToggleProcess.command = ["easyeffects", "-b", bypassed ? "2" : "1"];
@@ -60,11 +69,21 @@ Singleton {
             rightObj["band" + i] = bandObj;
         }
 
+        // Schema de EasyEffects 8 (reescritura Qt): el plugin debe ir nombrado
+        // como "equalizer#0" y listado en "plugins_order", si no EE carga el
+        // preset pero NO inserta el ecualizador en la cadena (no se oye nada).
+        // Requiere además num-bands/output-gain/split-channels/bypass/mode.
         let preset = {
             "output": {
                 "blocklist": [],
-                "equalizer": {
+                "plugins_order": ["equalizer#0"],
+                "equalizer#0": {
+                    "bypass": false,
                     "input-gain": 0.0,
+                    "output-gain": 0.0,
+                    "mode": "IIR",
+                    "num-bands": 10,
+                    "split-channels": false,
                     "left": leftObj,
                     "right": rightObj
                 }
@@ -72,9 +91,13 @@ Singleton {
         };
 
         root.activeOutputPreset = "ambxst_eq";
+        // EE 8 lee los presets de $XDG_DATA_HOME (default ~/.local/share), no de
+        // ~/.config. El JSON se pasa como argv ($1), no embebido en el script,
+        // para no depender del escaping del shell.
         writePresetProcess.command = [
-            "bash", "-c", 
-            "mkdir -p ~/.config/easyeffects/output && echo '" + JSON.stringify(preset) + "' > ~/.config/easyeffects/output/ambxst_eq.json && easyeffects -l ambxst_eq"
+            "bash", "-c",
+            'dir="${XDG_DATA_HOME:-$HOME/.local/share}/easyeffects/output"; mkdir -p "$dir" && printf %s "$1" > "$dir/ambxst_eq.json" && easyeffects -l ambxst_eq',
+            "ambxst", JSON.stringify(preset)
         ];
         writePresetProcess.running = true;
     }
@@ -227,10 +250,12 @@ Singleton {
         }
     }
 
-    // Get active presets
+    // Get active presets. En EE 8, `-a` exige un tipo (output/input); `-s`
+    // imprime ambos en formato "input: X" / "output: Y", que es justo lo que
+    // parsea el handler de abajo (split por ":").
     Process {
         id: activePresetsProcess
-        command: ["easyeffects", "-a"]
+        command: ["easyeffects", "-s"]
         running: false
         property string buffer: ""
         environment: ({ LANG: "C.UTF-8", LC_ALL: "C.UTF-8" })

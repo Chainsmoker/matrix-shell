@@ -39,11 +39,25 @@ Rectangle {
 
     Component.onCompleted: {
         EasyEffectsService.initialize();
-        // Initialize the UI to Flat without auto-applying (don't clobber the
-        // user's current EQ just by opening the tab).
-        setBands(presets["Flat"]);
-        activePreset = "Flat";
-        pending = false;
+        // Restaurar la selección previa si el usuario ya tocó el EQ en esta
+        // sesión (el tab se destruye al cambiar de pestaña). Si no, arrancar en
+        // Flat sin auto-aplicar (no pisar el EQ actual sólo por abrir el tab).
+        if (EasyEffectsService.uiPreset !== "" && EasyEffectsService.uiBands.length === 10) {
+            setBands(EasyEffectsService.uiBands);
+            activePreset = EasyEffectsService.uiPreset;
+            pending = EasyEffectsService.uiPending;
+        } else {
+            setBands(presets["Flat"]);
+            activePreset = "Flat";
+            pending = false;
+        }
+    }
+
+    // Espeja el estado de UI al singleton para que sobreviva a la recarga del tab.
+    function saveUiState() {
+        EasyEffectsService.uiPreset = root.activePreset;
+        EasyEffectsService.uiBands = root.bands.slice();
+        EasyEffectsService.uiPending = root.pending;
     }
 
     function setBands(arr) {
@@ -58,6 +72,7 @@ Rectangle {
         if (EasyEffectsService.available)
             EasyEffectsService.applyEqualizer(root.bands);
         root.pending = false;
+        root.saveUiState();
         root.triggerEqLightning();
     }
 
@@ -80,6 +95,7 @@ Rectangle {
         root.bands = a;
         activePreset = "Custom";
         pending = true;
+        saveUiState();
     }
 
     // ── Lightning animation state ────────────────────────────────────────────
