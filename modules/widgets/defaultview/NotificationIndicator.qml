@@ -70,10 +70,10 @@ Item {
                 onHoveredChanged: root.hovered = hovered
             }
 
-            // Left click → open the Notifications dashboard tab (index 3).
+            // Left click → open the Notifications dashboard tab (index 2).
             TapHandler {
                 acceptedButtons: Qt.LeftButton
-                onTapped: GlobalShortcuts.toggleDashboardTab(3)
+                onTapped: GlobalShortcuts.toggleDashboardTab(2)
             }
             // Right click → toggle Do Not Disturb.
             TapHandler {
