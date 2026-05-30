@@ -7,7 +7,8 @@ import qs.modules.components
     StyledRect {
     variant: "bg"
     glossy: true
-    fillColor: Colors.surfaceBright
+    // Fondo negro como los iconos de la izquierda (variant "bg" = background).
+    fillColor: "transparent"
     id: root
 
     // Hide when no tray items

@@ -304,7 +304,7 @@ Item {
             readonly property int dockWidth: 420
             readonly property int shoulderSize: Config.roundness > 0 ? Config.roundness + 28 : 44
             visible: opacity > 0.001
-            opacity: (root.orientation === "horizontal" && GlobalStates.newsPanelOpen) ? 1 : 0
+            opacity: (root.orientation === "horizontal" && (GlobalStates.newsPanelOpen || GlobalStates.toolsDockOpen)) ? 1 : 0
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
@@ -600,7 +600,7 @@ Item {
                         PresetsButton {
                             id: presetsButton
                             glossy: true
-                            fillColor: Colors.surfaceBright
+                            fillColor: "transparent"
                             contentColor: Colors.overBackground
                             startRadius: root.dockAtEnd ? root.innerRadius : root.outerRadius
                             endRadius: root.innerRadius
@@ -610,7 +610,7 @@ Item {
                         ToolsButton {
                             id: toolsButton
                             glossy: true
-                            fillColor: Colors.surfaceBright
+                            fillColor: "transparent"
                             contentColor: Colors.overBackground
                             startRadius: root.innerRadius
                             endRadius: root.innerRadius
@@ -651,7 +651,7 @@ Item {
                         PowerButton {
                             id: powerButton
                             glossy: true
-                            fillColor: Colors.surfaceBright
+                            fillColor: "transparent"
                             contentColor: Colors.overBackground
                             startRadius: root.innerRadius
                             endRadius: root.outerRadius

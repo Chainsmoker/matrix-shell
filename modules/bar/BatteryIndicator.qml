@@ -53,7 +53,7 @@ Item {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
         glossy: true
-        fillColor: Colors.surfaceBright
+        fillColor: "transparent"
         item: Colors.overBackground
         anchors.fill: parent
         enableShadow: root.layerEnabled

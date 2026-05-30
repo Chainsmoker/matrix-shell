@@ -44,7 +44,7 @@ Item {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
         glossy: true
-        fillColor: Colors.surfaceBright
+        fillColor: "transparent"
         item: Colors.overBackground
         anchors.fill: parent
         enableShadow: root.layerEnabled
@@ -166,7 +166,7 @@ Item {
         bar: root.bar
         variant: "transparent"
         popupPadding: 0
-        visualMargin: 0
+        visualMargin: 8  // Separación de la barra para que el header no quede pegado
 
         readonly property int fullHeight: Math.max(minContentHeight,
             barAtTop ? bar.screen.height - 60 - shadowMargin * 2
@@ -189,8 +189,6 @@ Item {
             id: unifiedWrapper
             variant: "popup"
             radius: Styling.radius(12)
-            topLeftRadius: 0
-            topRightRadius: 0
             enableShadow: true
             width: 300 + 32
             height: Math.max(popupColumn.height + 24, clockPopup.fullHeight)

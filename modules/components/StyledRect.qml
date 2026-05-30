@@ -211,17 +211,16 @@ ClippingRectangle {
     layer.enabled: enableShadow
     layer.effect: Shadow {}
 
-    // Sheen plata/satinado opcional: brillo concentrado en el centro que se
-    // difumina hacia los bordes (look metálico). Clipeado por el root.
+    // Sheen horizontal opcional: la base (color matugen) queda a la izquierda y
+    // se difumina a un blanco brilloso hacia la derecha. Clipeado por el root.
     Rectangle {
         anchors.fill: parent
         visible: root.glossy
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.02) }
-            GradientStop { position: 0.42; color: Qt.rgba(1, 1, 1, 0.26) }
-            GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, 0.30) }
-            GradientStop { position: 0.58; color: Qt.rgba(1, 1, 1, 0.26) }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.06) }
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.0) }
+            GradientStop { position: 0.45; color: Qt.rgba(1, 1, 1, 0.0) }
+            GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.38) }
         }
     }
 
