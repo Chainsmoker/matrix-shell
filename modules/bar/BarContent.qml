@@ -296,11 +296,11 @@ Item {
         }
 
 
-        // Pinta el lado izquierdo del bar con el color "bg" cuando el LeftDock está abierto,
+        // Pinta el lado izquierdo del bar con el color "bg" cuando el NewsDock está abierto,
         // para que bar y dock se vean como una sola superficie continua.
         // Sólo aplica en bars horizontales (top/bottom).
         StyledRect {
-            id: leftDockAccent
+            id: newsDockAccent
             readonly property int dockWidth: 420
             readonly property int shoulderSize: Config.roundness > 0 ? Config.roundness + 28 : 44
             visible: opacity > 0.001
@@ -328,18 +328,18 @@ Item {
         // con una curva tipo notch.
         Item {
             id: topRightShoulder
-            width: leftDockAccent.shoulderSize
-            height: leftDockAccent.shoulderSize
-            anchors.top: leftDockAccent.top
-            anchors.left: leftDockAccent.right
-            visible: leftDockAccent.visible && !Config.showBackground
-            opacity: leftDockAccent.opacity
+            width: newsDockAccent.shoulderSize
+            height: newsDockAccent.shoulderSize
+            anchors.top: newsDockAccent.top
+            anchors.left: newsDockAccent.right
+            visible: newsDockAccent.visible && !Config.showBackground
+            opacity: newsDockAccent.opacity
 
             RoundCorner {
                 anchors.fill: parent
                 corner: RoundCorner.CornerEnum.TopLeft
-                size: leftDockAccent.shoulderSize
-                color: leftDockAccent.color
+                size: newsDockAccent.shoulderSize
+                color: newsDockAccent.color
             }
         }
 

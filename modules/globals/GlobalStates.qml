@@ -60,16 +60,27 @@ Singleton {
     property bool newsPanelOpen: false
     // Left edge tools dock
     property bool toolsDockOpen: false
+    // Bottom-center music player dock
+    property bool musicPanelOpen: false
 
     onNewsPanelOpenChanged: {
         if (newsPanelOpen) {
             toolsDockOpen = false;
+            musicPanelOpen = false;
         }
     }
 
     onToolsDockOpenChanged: {
         if (toolsDockOpen) {
             newsPanelOpen = false;
+            musicPanelOpen = false;
+        }
+    }
+
+    onMusicPanelOpenChanged: {
+        if (musicPanelOpen) {
+            newsPanelOpen = false;
+            toolsDockOpen = false;
         }
     }
 

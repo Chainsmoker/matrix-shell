@@ -18,7 +18,8 @@ import qs.modules.widgets.workspaceswitcher
 import qs.modules.widgets.presets
 import qs.modules.widgets.controlpanel
 import qs.modules.widgets.rightdock
-import qs.modules.widgets.leftdock
+import qs.modules.widgets.newsdock
+import qs.modules.widgets.musicdock
 import qs.modules.widgets.toolsdock
 import qs.modules.services
 import qs.modules.corners
@@ -258,7 +259,7 @@ ShellRoot {
         }
     }
 
-    // LeftDock — news tech + CVE feed
+    // NewsDock — news tech + CVE feed
     Variants {
         model: {
             const screens = Quickshell.screens;
@@ -268,7 +269,23 @@ ShellRoot {
             return screens.filter(screen => list.indexOf(screen.name) !== -1);
         }
 
-        LeftDock {
+        NewsDock {
+            required property ShellScreen modelData
+            screen: modelData
+        }
+    }
+
+    // MusicDock — reproductor MPRIS con waveform
+    Variants {
+        model: {
+            const screens = Quickshell.screens;
+            const list = (Config.bar && Config.bar.screenList !== undefined ? Config.bar.screenList : []);
+            if (!list || list.length === 0)
+                return screens;
+            return screens.filter(screen => list.indexOf(screen.name) !== -1);
+        }
+
+        MusicDock {
             required property ShellScreen modelData
             screen: modelData
         }

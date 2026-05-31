@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Services.Mpris
 import qs.modules.theme
 import qs.modules.services
+import qs.modules.globals
 import qs.modules.notch
 import qs.modules.components
 import qs.config
@@ -151,12 +152,27 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            CompactPlayer {
+            Item {
+                id: playerSlot
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width - userInfo.width - separator1.width - separator2.width - notifIndicator.width - (recIndicator.visible ? recIndicator.width + parent.spacing : 0) - (parent.spacing * 4)
                 height: 32
-                player: activePlayer
-                notchHovered: expandedState
+
+                // Fondo: click en zona libre / visualizador → abre el MusicDock.
+                // Declarado ANTES del CompactPlayer para que sus botones (play/prev/next,
+                // selector) queden encima y conserven sus propios clicks.
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: root.activePlayer !== null
+                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: GlobalStates.musicPanelOpen = true
+                }
+
+                CompactPlayer {
+                    anchors.fill: parent
+                    player: activePlayer
+                    notchHovered: expandedState
+                }
             }
 
             Separator {
