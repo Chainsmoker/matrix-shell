@@ -83,11 +83,16 @@ PanelWindow {
         height: dock.height - dock.barReserved
     }
 
-    Timer {
-        id: closeTimer
-        interval: 800
-        repeat: false
-        onTriggered: GlobalStates.toolsDockOpen = false
+    // Cierra al hacer click fuera del dock (o al perder foco). El dock queda
+    // ABIERTO aunque saques el mouse — solo se cierra con click afuera, click en
+    // la pantalla, o re-click en el botón. Qt.callLater evita el doble-toggle
+    // cuando el click es justo sobre el botón que lo abre/cierra.
+    FocusGrab {
+        windows: [dock]
+        active: dock.isOpen
+        onCleared: Qt.callLater(() => {
+            if (dock.isOpen) GlobalStates.toolsDockOpen = false;
+        })
     }
 
     onCurrentTabChanged: {
@@ -248,16 +253,6 @@ PanelWindow {
         opacity: dock.isOpen ? 1 : 0
         visible: opacity > 0.001
 
-        HoverHandler {
-            id: dockHoverHandler
-            onHoveredChanged: {
-                if (!hovered && dock.isOpen) {
-                    closeTimer.restart();
-                } else {
-                    closeTimer.stop();
-                }
-            }
-        }
 
         transform: Translate {
             id: slideTransform
