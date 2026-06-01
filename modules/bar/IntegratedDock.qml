@@ -38,7 +38,7 @@ StyledRect {
     bottomLeftRadius: isVertical ? endRadius : startRadius
     bottomRightRadius: isVertical ? endRadius : endRadius
     
-    enableShadow: false
+    enableShadow: Config.showBackground
 
     implicitWidth: isVertical ? 36 : dockLayout.implicitWidth + 8
     implicitHeight: isVertical ? dockLayoutVertical.implicitHeight + 8 : 36
