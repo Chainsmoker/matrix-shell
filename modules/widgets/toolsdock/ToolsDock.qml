@@ -17,10 +17,15 @@ import qs.config
 PanelWindow {
     id: dock
 
+    // Full-screen (anclado a los 4 lados) para que el backdrop a la derecha del
+    // dock pueda captar clicks en la zona vacía y cerrar. exclusionMode Ignore
+    // hace que NO reserve espacio. Cuando está cerrado la máscara queda vacía →
+    // la ventana es click-through e invisible.
     anchors {
         top: true
         bottom: true
         left: true
+        right: true
     }
 
     color: "transparent"
@@ -66,11 +71,10 @@ PanelWindow {
         return Config.bar?.position === "top" ? base : 0;
     }
 
-    implicitWidth: dockWidth + dock.shoulderSize + 8
-
     mask: Region {
         regions: [
             Region { item: dock.isOpen ? fullMask : null },
+            Region { item: dock.isOpen ? backdropMask : null },
             Region { item: (dock.isOpen && (!dock.barAtTop || Config.showBackground)) ? topRightShoulder : null },
             Region { item: (dock.isOpen && !dock.barAtTop && Config.showBackground) ? bottomRightShoulder : null }
         ]
@@ -83,17 +87,25 @@ PanelWindow {
         height: dock.height - dock.barReserved
     }
 
-    // Cierra al hacer click fuera del dock (o al perder foco). El dock queda
-    // ABIERTO aunque saques el mouse — solo se cierra con click afuera, click en
-    // la pantalla, o re-click en el botón. Qt.callLater evita el doble-toggle
-    // cuando el click es justo sobre el botón que lo abre/cierra.
-    FocusGrab {
-        windows: [dock]
-        active: dock.isOpen
-        onCleared: Qt.callLater(() => {
-            if (dock.isOpen) GlobalStates.toolsDockOpen = false;
-        })
+    // Zona vacía a la derecha del dock: capta clicks para cerrar (click-afuera).
+    // No cubre la barra (arranca en barReserved) ni el cuerpo del dock, así que
+    // el botón sigue clickeable y clickear dentro del dock no lo cierra.
+    Item {
+        id: backdropMask
+        x: dock.dockWidth
+        y: dock.barReserved
+        width: Math.max(0, dock.width - dock.dockWidth)
+        height: dock.height - dock.barReserved
     }
+    MouseArea {
+        x: backdropMask.x
+        y: backdropMask.y
+        width: backdropMask.width
+        height: backdropMask.height
+        enabled: dock.isOpen
+        onClicked: GlobalStates.toolsDockOpen = false
+    }
+
 
     onCurrentTabChanged: {
         ttlMenuOpen = false;
