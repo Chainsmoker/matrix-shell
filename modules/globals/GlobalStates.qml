@@ -71,16 +71,16 @@ Singleton {
     }
 
     onToolsDockOpenChanged: {
+        // El player (musicPanelOpen) NO se cierra: tools va a la izquierda y el
+        // player abajo-centro, no se solapan → pueden convivir.
         if (toolsDockOpen) {
             newsPanelOpen = false;
-            musicPanelOpen = false;
         }
     }
 
     onMusicPanelOpenChanged: {
         if (musicPanelOpen) {
             newsPanelOpen = false;
-            toolsDockOpen = false;
         }
     }
 

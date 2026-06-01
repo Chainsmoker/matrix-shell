@@ -814,7 +814,7 @@ PanelWindow {
                 }
             }
 
-            // Barra de input redondeada
+            // Barra de input: preview de adjuntos + textarea multilínea + adjuntar/enviar
             Item {
                 id: inputBar
                 anchors.bottom: parent.bottom
@@ -823,112 +823,274 @@ PanelWindow {
                 anchors.leftMargin: dock.hPadding
                 anchors.rightMargin: dock.hPadding
                 anchors.bottomMargin: 16
-                height: 48
+                height: inputCol.implicitHeight
                 visible: dock.chatSubTab === 0
 
-                RowLayout {
-                    anchors.fill: parent
+                // Adjuntos pendientes — cada uno: { path, mimeType, base64 }
+                property var pendingAttachments: []
+                property string pendingPath: ""
+
+                function sendNow() {
+                    if (Ai.isLoading)
+                        return;
+                    if (chatInput.text.trim() === "" && inputBar.pendingAttachments.length === 0)
+                        return;
+                    Ai.sendMessage(chatInput.text, inputBar.pendingAttachments);
+                    chatInput.text = "";
+                    inputBar.pendingAttachments = [];
+                }
+                function removeAttachment(idx) {
+                    let a = inputBar.pendingAttachments.slice();
+                    a.splice(idx, 1);
+                    inputBar.pendingAttachments = a;
+                }
+
+                // Elegir imagen con el picker → leer mime + base64
+                Process {
+                    id: pickImgProc
+                    stdout: StdioCollector {
+                        onStreamFinished: {
+                            const p = text.trim();
+                            if (p.length === 0)
+                                return;
+                            inputBar.pendingPath = p;
+                            readImgProc.command = ["sh", "-c", "f=\"$1\"; printf '%s\\n' \"$(file -b --mime-type \"$f\")\"; base64 -w0 \"$f\"", "sh", p];
+                            readImgProc.running = true;
+                        }
+                    }
+                }
+                Process {
+                    id: readImgProc
+                    stdout: StdioCollector {
+                        onStreamFinished: {
+                            const raw = text;
+                            const nl = raw.indexOf("\n");
+                            if (nl < 0)
+                                return;
+                            const mime = raw.substring(0, nl).trim();
+                            const b64 = raw.substring(nl + 1).trim();
+                            if (!mime.startsWith("image/") || b64.length === 0)
+                                return;
+                            let a = inputBar.pendingAttachments.slice();
+                            a.push({ path: inputBar.pendingPath, mimeType: mime, base64: b64 });
+                            inputBar.pendingAttachments = a;
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    id: inputCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
                     spacing: 8
 
-                    // Nuevo chat (limpiar)
-                    Rectangle {
-                        Layout.preferredWidth: 48
-                        Layout.preferredHeight: 48
-                        radius: width / 2
-                        color: clearMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
-                        Behavior on color { ColorAnimation { duration: 150 } }
+                    // Preview de imágenes adjuntas
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        visible: inputBar.pendingAttachments.length > 0
 
-                        Text {
-                            anchors.centerIn: parent
-                            text: Icons.trash
-                            font.family: Icons.font
-                            font.pixelSize: 17
-                            color: Colors.overBackground
-                        }
+                        Repeater {
+                            model: inputBar.pendingAttachments
+                            delegate: Rectangle {
+                                id: thumb
+                                required property var modelData
+                                required property int index
+                                width: 64
+                                height: 64
+                                radius: Styling.radius(12)
+                                color: Colors.surfaceContainerHigh
+                                clip: true
 
-                        MouseArea {
-                            id: clearMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                Ai.createNewChat();
-                                chatInput.text = "";
+                                Image {
+                                    anchors.fill: parent
+                                    source: "file://" + thumb.modelData.path
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    cache: false
+                                }
+
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.right: parent.right
+                                    anchors.margins: 3
+                                    width: 18
+                                    height: 18
+                                    radius: width / 2
+                                    color: Colors.scrim
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "✕"
+                                        color: "white"
+                                        font.pixelSize: 11
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: inputBar.removeAttachment(thumb.index)
+                                    }
+                                }
                             }
                         }
                     }
 
-                    // Campo + enviar dentro de un pill
-                    Rectangle {
+                    // Fila del input
+                    RowLayout {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 48
-                        radius: height / 2
-                        color: Colors.surfaceContainerHigh
+                        spacing: 8
 
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 18
-                            anchors.rightMargin: 6
-                            spacing: 6
+                        // Nuevo chat (limpiar)
+                        Rectangle {
+                            Layout.preferredWidth: 48
+                            Layout.preferredHeight: 48
+                            Layout.alignment: Qt.AlignBottom
+                            radius: width / 2
+                            color: clearMouse.containsMouse ? Colors.surfaceContainerHighest : Colors.surfaceContainerHigh
+                            Behavior on color { ColorAnimation { duration: 150 } }
 
-                            TextInput {
-                                id: chatInput
-                                Layout.fillWidth: true
-                                verticalAlignment: TextInput.AlignVCenter
+                            Text {
+                                anchors.centerIn: parent
+                                text: Icons.trash
+                                font.family: Icons.font
+                                font.pixelSize: 17
                                 color: Colors.overBackground
-                                font.family: Config.theme.font
-                                font.pixelSize: Styling.fontSize(0)
-                                selectByMouse: true
-                                clip: true
-
-                                Text {
-                                    anchors.fill: parent
-                                    verticalAlignment: Text.AlignVCenter
-                                    text: "Ask " + Config.brandName + " something..."
-                                    color: Colors.outline
-                                    opacity: chatInput.text.length === 0 ? 0.7 : 0
-                                    font: chatInput.font
-                                }
-
-                                Keys.onPressed: (event) => {
-                                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                        if (chatInput.text.trim() !== "") {
-                                            Ai.sendMessage(chatInput.text);
-                                            chatInput.text = "";
-                                        }
-                                        event.accepted = true;
-                                    }
-                                }
                             }
 
-                            // Enviar / Stop (circular)
-                            Rectangle {
-                                id: sendBtn
-                                readonly property bool act: Ai.isLoading || chatInput.text.trim() !== ""
-                                Layout.preferredWidth: 36
-                                Layout.preferredHeight: 36
-                                Layout.alignment: Qt.AlignVCenter
-                                radius: width / 2
-                                color: Ai.isLoading ? Colors.error : (sendBtn.act ? Colors.primary : Colors.surfaceContainerHighest)
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                            MouseArea {
+                                id: clearMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    Ai.createNewChat();
+                                    chatInput.text = "";
+                                    inputBar.pendingAttachments = [];
+                                }
+                            }
+                        }
 
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: Ai.isLoading ? Icons.stop : Icons.caretRight
-                                    font.family: Icons.font
-                                    font.pixelSize: 16
-                                    color: Ai.isLoading ? Colors.overError : (sendBtn.act ? Colors.overPrimary : Colors.outline)
+                        // Pill: adjuntar + textarea + enviar
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignBottom
+                            implicitHeight: Math.max(48, Math.min(chatInput.implicitHeight, 132) + 14)
+                            radius: 22
+                            color: Colors.surfaceContainerHigh
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 8
+                                anchors.rightMargin: 6
+                                anchors.topMargin: 6
+                                anchors.bottomMargin: 6
+                                spacing: 4
+
+                                // Adjuntar imagen
+                                Rectangle {
+                                    Layout.preferredWidth: 34
+                                    Layout.preferredHeight: 34
+                                    Layout.alignment: Qt.AlignBottom
+                                    radius: width / 2
+                                    color: attachMouse.containsMouse ? Colors.surfaceContainerHighest : "transparent"
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: Icons.image
+                                        font.family: Icons.font
+                                        font.pixelSize: 17
+                                        color: Colors.outline
+                                    }
+
+                                    MouseArea {
+                                        id: attachMouse
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            pickImgProc.command = [Quickshell.env("HOME") + "/.local/bin/matrix-pick", "file", Quickshell.env("HOME"), "Pick an image"];
+                                            pickImgProc.running = true;
+                                        }
+                                    }
                                 }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (Ai.isLoading) {
-                                            Ai.stopGeneration();
-                                        } else if (chatInput.text.trim() !== "") {
-                                            Ai.sendMessage(chatInput.text);
-                                            chatInput.text = "";
+                                // Textarea multilínea (Enter envía · Shift+Enter salto de línea)
+                                Flickable {
+                                    id: inputFlick
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    contentWidth: width
+                                    contentHeight: chatInput.implicitHeight
+                                    clip: true
+                                    interactive: contentHeight > height
+                                    boundsBehavior: Flickable.StopAtBounds
+
+                                    TextEdit {
+                                        id: chatInput
+                                        width: inputFlick.width
+                                        wrapMode: TextEdit.Wrap
+                                        verticalAlignment: TextEdit.AlignVCenter
+                                        color: Colors.overBackground
+                                        font.family: Config.theme.font
+                                        font.pixelSize: Styling.fontSize(0)
+                                        selectByMouse: true
+
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            wrapMode: Text.Wrap
+                                            text: "Ask " + Config.brandName + " something..."
+                                            color: Colors.outline
+                                            opacity: chatInput.text.length === 0 ? 0.7 : 0
+                                            font: chatInput.font
+                                        }
+
+                                        // Mantener el cursor visible al tipear multilínea
+                                        onCursorRectangleChanged: {
+                                            if (cursorRectangle.y < inputFlick.contentY)
+                                                inputFlick.contentY = cursorRectangle.y;
+                                            else if (cursorRectangle.y + cursorRectangle.height > inputFlick.contentY + inputFlick.height)
+                                                inputFlick.contentY = cursorRectangle.y + cursorRectangle.height - inputFlick.height;
+                                        }
+
+                                        Keys.onPressed: (event) => {
+                                            if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
+                                                inputBar.sendNow();
+                                                event.accepted = true;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Enviar / Stop (circular)
+                                Rectangle {
+                                    id: sendBtn
+                                    readonly property bool act: Ai.isLoading || chatInput.text.trim() !== "" || inputBar.pendingAttachments.length > 0
+                                    Layout.preferredWidth: 36
+                                    Layout.preferredHeight: 36
+                                    Layout.alignment: Qt.AlignBottom
+                                    radius: width / 2
+                                    color: Ai.isLoading ? Colors.error : (sendBtn.act ? Colors.primary : Colors.surfaceContainerHighest)
+                                    Behavior on color { ColorAnimation { duration: 150 } }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: Ai.isLoading ? Icons.stop : Icons.caretRight
+                                        font.family: Icons.font
+                                        font.pixelSize: 16
+                                        color: Ai.isLoading ? Colors.overError : (sendBtn.act ? Colors.overPrimary : Colors.outline)
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (Ai.isLoading)
+                                                Ai.stopGeneration();
+                                            else
+                                                inputBar.sendNow();
                                         }
                                     }
                                 }
