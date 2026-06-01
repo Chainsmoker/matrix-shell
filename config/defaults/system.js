@@ -5,15 +5,15 @@ var data = {
     "updateServiceEnabled": true,
     "idle": {
         "general": {
-            "lock_cmd": "ambxst lock",
+            "lock_cmd": "matrix lock",
             "before_sleep_cmd": "loginctl lock-session",
-            "after_sleep_cmd": "ambxst screen on"
+            "after_sleep_cmd": "matrix screen on"
         },
         "listeners": [
             {
                 "timeout": 150,
-                "onTimeout": "ambxst brightness 10 -s",
-                "onResume": "ambxst brightness -r"
+                "onTimeout": "matrix brightness 10 -s",
+                "onResume": "matrix brightness -r"
             },
             {
                 "timeout": 300,
@@ -21,12 +21,12 @@ var data = {
             },
             {
                 "timeout": 330,
-                "onTimeout": "ambxst screen off",
-                "onResume": "ambxst screen on"
+                "onTimeout": "matrix screen off",
+                "onResume": "matrix screen on"
             },
             {
                 "timeout": 1800,
-                "onTimeout": "ambxst suspend"
+                "onTimeout": "matrix suspend"
             }
         ]
     },

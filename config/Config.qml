@@ -28,15 +28,20 @@ Singleton {
 
     property string version: "0.0.0"
 
+    // Nombre visible de la shell. Cambialo acá y se actualiza en TODA la UI
+    // (notch, chat, settings, notificaciones...). Para el rebrand interno
+    // (paths, namespaces, sink, CLI) ver el rename de identificadores.
+    property string brandName: "Matrix"
+
     FileView {
         id: versionFile
         path: Qt.resolvedUrl("../version").toString().replace("file://", "")
         onLoaded: root.version = text().trim()
     }
 
-    property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ambxst/config"
-    property string keybindsPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ambxst/binds.json"
-    property string presetDir: Qt.resolvedUrl("../assets/presets/Ambxst Default").toString().replace("file://", "")
+    property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/matrix/config"
+    property string keybindsPath: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/matrix/binds.json"
+    property string presetDir: Qt.resolvedUrl("../assets/presets/Matrix Default").toString().replace("file://", "")
 
     property bool pauseAutoSave: false
 
@@ -679,7 +684,7 @@ Singleton {
             property int hoverRegionHeight: 8
             property bool keepHidden: false
             property string noMediaDisplay: "userHost"
-            property string customText: "Ambxst"
+            property string customText: "Matrix"
             property bool disableHoverExpansion: true
         }
     }
@@ -1011,15 +1016,15 @@ Singleton {
             property bool updateServiceEnabled: true
             property JsonObject idle: JsonObject {
                 property JsonObject general: JsonObject {
-                    property string lock_cmd: "ambxst lock"
+                    property string lock_cmd: "matrix lock"
                     property string before_sleep_cmd: "loginctl lock-session"
-                    property string after_sleep_cmd: "ambxst screen on"
+                    property string after_sleep_cmd: "matrix screen on"
                 }
                 property list<var> listeners: [
                     {
                         "timeout": 150,
-                        "onTimeout": "ambxst brightness 10 -s",
-                        "onResume": "ambxst brightness -r"
+                        "onTimeout": "matrix brightness 10 -s",
+                        "onResume": "matrix brightness -r"
                     },
                     {
                         "timeout": 300,
@@ -1027,12 +1032,12 @@ Singleton {
                     },
                     {
                         "timeout": 330,
-                        "onTimeout": "ambxst screen off",
-                        "onResume": "ambxst screen on"
+                        "onTimeout": "matrix screen off",
+                        "onResume": "matrix screen on"
                     },
                     {
                         "timeout": 1800,
-                        "onTimeout": "ambxst suspend"
+                        "onTimeout": "matrix suspend"
                     }
                 ]
             }
@@ -1224,72 +1229,72 @@ Singleton {
             const current = JSON.parse(raw);
             let needsUpdate = false;
 
-            // Ensure ambxst structure exists
-            if (!current.ambxst) {
-                current.ambxst = {};
+            // Ensure matrix structure exists
+            if (!current.matrix) {
+                current.matrix = {};
                 needsUpdate = true;
             }
 
             // Migrate nested to flat structure
-            if (current.ambxst.dashboard && typeof current.ambxst.dashboard === "object" && !current.ambxst.dashboard.modifiers) {
-                console.log("Migrating nested ambxst binds to flat structure...");
-                const nested = current.ambxst.dashboard;
+            if (current.matrix.dashboard && typeof current.matrix.dashboard === "object" && !current.matrix.dashboard.modifiers) {
+                console.log("Migrating nested matrix binds to flat structure...");
+                const nested = current.matrix.dashboard;
                 
                 // Map old names to new names and update arguments
                 if (nested.widgets) {
-                    current.ambxst.launcher = nested.widgets;
-                    current.ambxst.launcher.argument = "ambxst run launcher";
-                    current.ambxst.launcher.action = createAction(current.ambxst.launcher);
+                    current.matrix.launcher = nested.widgets;
+                    current.matrix.launcher.argument = "matrix run launcher";
+                    current.matrix.launcher.action = createAction(current.matrix.launcher);
                 }
                 if (nested.dashboard) {
-                    current.ambxst.dashboard = nested.dashboard;
-                    current.ambxst.dashboard.argument = "ambxst run dashboard";
-                    current.ambxst.dashboard.action = createAction(current.ambxst.dashboard);
+                    current.matrix.dashboard = nested.dashboard;
+                    current.matrix.dashboard.argument = "matrix run dashboard";
+                    current.matrix.dashboard.action = createAction(current.matrix.dashboard);
                 }
                 if (nested.assistant) {
-                    current.ambxst.assistant = nested.assistant;
-                    current.ambxst.assistant.argument = "ambxst run assistant";
-                    current.ambxst.assistant.action = createAction(current.ambxst.assistant);
+                    current.matrix.assistant = nested.assistant;
+                    current.matrix.assistant.argument = "matrix run assistant";
+                    current.matrix.assistant.action = createAction(current.matrix.assistant);
                 }
                 if (nested.clipboard) {
-                    current.ambxst.clipboard = nested.clipboard;
-                    current.ambxst.clipboard.argument = "ambxst run clipboard";
-                    current.ambxst.clipboard.action = createAction(current.ambxst.clipboard);
+                    current.matrix.clipboard = nested.clipboard;
+                    current.matrix.clipboard.argument = "matrix run clipboard";
+                    current.matrix.clipboard.action = createAction(current.matrix.clipboard);
                 }
                 if (nested.emoji) {
-                    current.ambxst.emoji = nested.emoji;
-                    current.ambxst.emoji.argument = "ambxst run emoji";
-                    current.ambxst.emoji.action = createAction(current.ambxst.emoji);
+                    current.matrix.emoji = nested.emoji;
+                    current.matrix.emoji.argument = "matrix run emoji";
+                    current.matrix.emoji.action = createAction(current.matrix.emoji);
                 }
                 if (nested.notes) {
-                    current.ambxst.notes = nested.notes;
-                    current.ambxst.notes.argument = "ambxst run notes";
-                    current.ambxst.notes.action = createAction(current.ambxst.notes);
+                    current.matrix.notes = nested.notes;
+                    current.matrix.notes.argument = "matrix run notes";
+                    current.matrix.notes.action = createAction(current.matrix.notes);
                 }
                 if (nested.tmux) {
-                    current.ambxst.tmux = nested.tmux;
-                    current.ambxst.tmux.argument = "ambxst run tmux";
-                    current.ambxst.tmux.action = createAction(current.ambxst.tmux);
+                    current.matrix.tmux = nested.tmux;
+                    current.matrix.tmux.argument = "matrix run tmux";
+                    current.matrix.tmux.action = createAction(current.matrix.tmux);
                 }
                 if (nested.wallpapers) {
-                    current.ambxst.wallpapers = nested.wallpapers;
-                    current.ambxst.wallpapers.argument = "ambxst run wallpapers";
-                    current.ambxst.wallpapers.action = createAction(current.ambxst.wallpapers);
+                    current.matrix.wallpapers = nested.wallpapers;
+                    current.matrix.wallpapers.argument = "matrix run wallpapers";
+                    current.matrix.wallpapers.action = createAction(current.matrix.wallpapers);
                 }
 
                 // Remove the old nested object
-                delete current.ambxst.dashboard;
+                delete current.matrix.dashboard;
                 needsUpdate = true;
             }
 
-            if (!current.ambxst.system) {
-                current.ambxst.system = {};
+            if (!current.matrix.system) {
+                current.matrix.system = {};
                 needsUpdate = true;
             }
 
             // Get default binds from adapter
             const adapter = keybindsLoader.adapter;
-            if (!adapter || !adapter.ambxst) return;
+            if (!adapter || !adapter.matrix) return;
 
             // Helper function to create clean bind object
             function createAction(bindObj) {
@@ -1307,18 +1312,18 @@ Singleton {
                 };
             }
 
-            // Check ambxst core binds
-            const ambxstKeys = ["launcher", "dashboard", "assistant", "clipboard", "emoji", "notes", "tmux", "wallpapers"];
-            for (const key of ambxstKeys) {
-                if (!current.ambxst[key] && adapter.ambxst[key]) {
-                    console.log("Adding missing ambxst bind:", key);
-                    current.ambxst[key] = createCleanBind(adapter.ambxst[key]);
+            // Check matrix core binds
+            const matrixKeys = ["launcher", "dashboard", "assistant", "clipboard", "emoji", "notes", "tmux", "wallpapers"];
+            for (const key of matrixKeys) {
+                if (!current.matrix[key] && adapter.matrix[key]) {
+                    console.log("Adding missing matrix bind:", key);
+                    current.matrix[key] = createCleanBind(adapter.matrix[key]);
                     needsUpdate = true;
-                } else if (current.ambxst[key] && !current.ambxst[key].action) {
-                    current.ambxst[key].action = createAction(current.ambxst[key]);
-                    delete current.ambxst[key].dispatcher;
-                    delete current.ambxst[key].argument;
-                    delete current.ambxst[key].flags;
+                } else if (current.matrix[key] && !current.matrix[key].action) {
+                    current.matrix[key].action = createAction(current.matrix[key]);
+                    delete current.matrix[key].dispatcher;
+                    delete current.matrix[key].argument;
+                    delete current.matrix[key].flags;
                     needsUpdate = true;
                 }
             }
@@ -1326,15 +1331,15 @@ Singleton {
             // Check system binds
             const systemKeys = ["overview", "powermenu", "config", "lockscreen", "tools", "screenshot", "screenrecord", "lens", "reload", "quit"];
             for (const key of systemKeys) {
-                if (!current.ambxst.system[key] && adapter.ambxst.system && adapter.ambxst.system[key]) {
+                if (!current.matrix.system[key] && adapter.matrix.system && adapter.matrix.system[key]) {
                     console.log("Adding missing system bind:", key);
-                    current.ambxst.system[key] = createCleanBind(adapter.ambxst.system[key]);
+                    current.matrix.system[key] = createCleanBind(adapter.matrix.system[key]);
                     needsUpdate = true;
-                } else if (current.ambxst.system[key] && !current.ambxst.system[key].action) {
-                    current.ambxst.system[key].action = createAction(current.ambxst.system[key]);
-                    delete current.ambxst.system[key].dispatcher;
-                    delete current.ambxst.system[key].argument;
-                    delete current.ambxst.system[key].flags;
+                } else if (current.matrix.system[key] && !current.matrix.system[key].action) {
+                    current.matrix.system[key].action = createAction(current.matrix.system[key]);
+                    delete current.matrix.system[key].dispatcher;
+                    delete current.matrix.system[key].argument;
+                    delete current.matrix.system[key].flags;
                     needsUpdate = true;
                 }
             }
@@ -1409,52 +1414,52 @@ Singleton {
         }
 
         adapter: JsonAdapter {
-            property JsonObject ambxst: JsonObject {
+            property JsonObject matrix: JsonObject {
                 property JsonObject launcher: JsonObject {
                     property list<string> modifiers: ["SUPER"]
                     property string key: "Super_L"
-                property var action: ({ "id": "ambxst.launcher", "args": {} })
+                property var action: ({ "id": "matrix.launcher", "args": {} })
             }
             property JsonObject dashboard: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "D"
-                property var action: ({ "id": "ambxst.dashboard", "args": {} })
+                property var action: ({ "id": "matrix.dashboard", "args": {} })
             }
             property JsonObject assistant: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "A"
-                property var action: ({ "id": "ambxst.assistant", "args": {} })
+                property var action: ({ "id": "matrix.assistant", "args": {} })
             }
             property JsonObject clipboard: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "V"
-                property var action: ({ "id": "ambxst.clipboard", "args": {} })
+                property var action: ({ "id": "matrix.clipboard", "args": {} })
             }
             property JsonObject emoji: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "PERIOD"
-                property var action: ({ "id": "ambxst.emoji", "args": {} })
+                property var action: ({ "id": "matrix.emoji", "args": {} })
             }
             property JsonObject notes: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "N"
-                property var action: ({ "id": "ambxst.notes", "args": {} })
+                property var action: ({ "id": "matrix.notes", "args": {} })
             }
             property JsonObject tmux: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "T"
-                property var action: ({ "id": "ambxst.tmux", "args": {} })
+                property var action: ({ "id": "matrix.tmux", "args": {} })
             }
             property JsonObject wallpapers: JsonObject {
                 property list<string> modifiers: ["SUPER"]
                 property string key: "COMMA"
-                property var action: ({ "id": "ambxst.wallpapers", "args": {} })
+                property var action: ({ "id": "matrix.wallpapers", "args": {} })
             }
             property JsonObject system: JsonObject {
                 property JsonObject config: JsonObject {
                     property list<string> modifiers: ["SUPER", "SHIFT"]
                     property string key: "C"
-                    property var action: ({ "id": "ambxst.config", "args": {} })
+                    property var action: ({ "id": "matrix.config", "args": {} })
                 }
                 property JsonObject lockscreen: JsonObject {
                     property list<string> modifiers: ["SUPER"]
@@ -1464,74 +1469,74 @@ Singleton {
                 property JsonObject overview: JsonObject {
                     property list<string> modifiers: ["SUPER"]
                     property string key: "TAB"
-                    property var action: ({ "id": "ambxst.overview", "args": {} })
+                    property var action: ({ "id": "matrix.overview", "args": {} })
                 }
                 property JsonObject powermenu: JsonObject {
                     property list<string> modifiers: ["SUPER"]
                     property string key: "ESCAPE"
-                    property var action: ({ "id": "ambxst.powermenu", "args": {} })
+                    property var action: ({ "id": "matrix.powermenu", "args": {} })
                 }
                 property JsonObject tools: JsonObject {
                     property list<string> modifiers: ["SUPER"]
                     property string key: "S"
-                    property var action: ({ "id": "ambxst.tools", "args": {} })
+                    property var action: ({ "id": "matrix.tools", "args": {} })
                 }
                 property JsonObject screenshot: JsonObject {
                     property list<string> modifiers: ["SUPER", "SHIFT"]
                     property string key: "S"
-                    property var action: ({ "id": "ambxst.screenshot", "args": {} })
+                    property var action: ({ "id": "matrix.screenshot", "args": {} })
                 }
                 property JsonObject screenrecord: JsonObject {
                     property list<string> modifiers: ["SUPER", "SHIFT"]
                     property string key: "R"
-                    property var action: ({ "id": "ambxst.screenrecord", "args": {} })
+                    property var action: ({ "id": "matrix.screenrecord", "args": {} })
                 }
                 property JsonObject lens: JsonObject {
                     property list<string> modifiers: ["SUPER", "SHIFT"]
                     property string key: "A"
-                    property var action: ({ "id": "ambxst.lens", "args": {} })
+                    property var action: ({ "id": "matrix.lens", "args": {} })
                 }
                 property JsonObject reload: JsonObject {
                     property list<string> modifiers: ["SUPER", "ALT"]
                     property string key: "B"
-                    property var action: ({ "id": "ambxst.reload", "args": {} })
+                    property var action: ({ "id": "matrix.reload", "args": {} })
                 }
                 property JsonObject quit: JsonObject {
                     property list<string> modifiers: ["SUPER", "CTRL", "ALT"]
                     property string key: "B"
-                    property var action: ({ "id": "ambxst.quit", "args": {} })
+                    property var action: ({ "id": "matrix.quit", "args": {} })
                 }
             }
             }
             // Default getters
-            readonly property var defaultAmbxstBinds: {
-                "ambxst": {
-                    "launcher": { "modifiers": ["SUPER"], "key": "Super_L", "action": { "id": "ambxst.launcher", "args": {} } },
-                    "dashboard": { "modifiers": ["SUPER"], "key": "D", "action": { "id": "ambxst.dashboard", "args": {} } },
-                    "assistant": { "modifiers": ["SUPER"], "key": "A", "action": { "id": "ambxst.assistant", "args": {} } },
-                    "clipboard": { "modifiers": ["SUPER"], "key": "V", "action": { "id": "ambxst.clipboard", "args": {} } },
-                    "emoji": { "modifiers": ["SUPER"], "key": "PERIOD", "action": { "id": "ambxst.emoji", "args": {} } },
-                    "notes": { "modifiers": ["SUPER"], "key": "N", "action": { "id": "ambxst.notes", "args": {} } },
-                    "tmux": { "modifiers": ["SUPER"], "key": "T", "action": { "id": "ambxst.tmux", "args": {} } },
-                    "wallpapers": { "modifiers": ["SUPER"], "key": "COMMA", "action": { "id": "ambxst.wallpapers", "args": {} } }
+            readonly property var defaultMatrixBinds: {
+                "matrix": {
+                    "launcher": { "modifiers": ["SUPER"], "key": "Super_L", "action": { "id": "matrix.launcher", "args": {} } },
+                    "dashboard": { "modifiers": ["SUPER"], "key": "D", "action": { "id": "matrix.dashboard", "args": {} } },
+                    "assistant": { "modifiers": ["SUPER"], "key": "A", "action": { "id": "matrix.assistant", "args": {} } },
+                    "clipboard": { "modifiers": ["SUPER"], "key": "V", "action": { "id": "matrix.clipboard", "args": {} } },
+                    "emoji": { "modifiers": ["SUPER"], "key": "PERIOD", "action": { "id": "matrix.emoji", "args": {} } },
+                    "notes": { "modifiers": ["SUPER"], "key": "N", "action": { "id": "matrix.notes", "args": {} } },
+                    "tmux": { "modifiers": ["SUPER"], "key": "T", "action": { "id": "matrix.tmux", "args": {} } },
+                    "wallpapers": { "modifiers": ["SUPER"], "key": "COMMA", "action": { "id": "matrix.wallpapers", "args": {} } }
                 },
                 "system": {
-                    "config": { "modifiers": ["SUPER", "SHIFT"], "key": "C", "action": { "id": "ambxst.config", "args": {} } },
+                    "config": { "modifiers": ["SUPER", "SHIFT"], "key": "C", "action": { "id": "matrix.config", "args": {} } },
                     "lockscreen": { "modifiers": ["SUPER"], "key": "L", "action": { "id": "system.lock", "args": {} } },
-                    "overview": { "modifiers": ["SUPER"], "key": "TAB", "action": { "id": "ambxst.overview", "args": {} } },
-                    "powermenu": { "modifiers": ["SUPER"], "key": "ESCAPE", "action": { "id": "ambxst.powermenu", "args": {} } },
-                    "tools": { "modifiers": ["SUPER"], "key": "S", "action": { "id": "ambxst.tools", "args": {} } },
-                    "screenshot": { "modifiers": ["SUPER", "SHIFT"], "key": "S", "action": { "id": "ambxst.screenshot", "args": {} } },
-                    "screenrecord": { "modifiers": ["SUPER", "SHIFT"], "key": "R", "action": { "id": "ambxst.screenrecord", "args": {} } },
-                    "lens": { "modifiers": ["SUPER", "SHIFT"], "key": "A", "action": { "id": "ambxst.lens", "args": {} } },
-                    "reload": { "modifiers": ["SUPER", "ALT"], "key": "B", "action": { "id": "ambxst.reload", "args": {} } },
-                    "quit": { "modifiers": ["SUPER", "CTRL", "ALT"], "key": "B", "action": { "id": "ambxst.quit", "args": {} } }
+                    "overview": { "modifiers": ["SUPER"], "key": "TAB", "action": { "id": "matrix.overview", "args": {} } },
+                    "powermenu": { "modifiers": ["SUPER"], "key": "ESCAPE", "action": { "id": "matrix.powermenu", "args": {} } },
+                    "tools": { "modifiers": ["SUPER"], "key": "S", "action": { "id": "matrix.tools", "args": {} } },
+                    "screenshot": { "modifiers": ["SUPER", "SHIFT"], "key": "S", "action": { "id": "matrix.screenshot", "args": {} } },
+                    "screenrecord": { "modifiers": ["SUPER", "SHIFT"], "key": "R", "action": { "id": "matrix.screenrecord", "args": {} } },
+                    "lens": { "modifiers": ["SUPER", "SHIFT"], "key": "A", "action": { "id": "matrix.lens", "args": {} } },
+                    "reload": { "modifiers": ["SUPER", "ALT"], "key": "B", "action": { "id": "matrix.reload", "args": {} } },
+                    "quit": { "modifiers": ["SUPER", "CTRL", "ALT"], "key": "B", "action": { "id": "matrix.quit", "args": {} } }
                 }
             }
 
-            function getAmbxstDefault(section, key) {
-                if (defaultAmbxstBinds[section] && defaultAmbxstBinds[section][key]) {
-                    const bind = defaultAmbxstBinds[section][key];
+            function getMatrixDefault(section, key) {
+                if (defaultMatrixBinds[section] && defaultMatrixBinds[section][key]) {
+                    const bind = defaultMatrixBinds[section][key];
                     return {
                         "modifiers": bind.modifiers || [],
                         "key": bind.key || "",
@@ -2399,7 +2404,7 @@ Singleton {
                     "actions": [
                         {
                             "dispatcher": "exec",
-                            "argument": "ambxst brightness +5",
+                            "argument": "matrix brightness +5",
                             "flags": "le",
                             "layouts": []
                         }
@@ -2417,7 +2422,7 @@ Singleton {
                     "actions": [
                         {
                             "dispatcher": "exec",
-                            "argument": "ambxst brightness -5",
+                            "argument": "matrix brightness -5",
                             "flags": "le",
                             "layouts": []
                         }

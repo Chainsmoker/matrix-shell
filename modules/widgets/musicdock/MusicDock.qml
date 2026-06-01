@@ -25,7 +25,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "ambxst:musicdock"
+    WlrLayershell.namespace: "matrix:musicdock"
     exclusionMode: ExclusionMode.Ignore
 
     readonly property bool isOpen: GlobalStates.musicPanelOpen

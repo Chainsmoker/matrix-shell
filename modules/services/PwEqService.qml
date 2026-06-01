@@ -7,8 +7,8 @@ import Quickshell.Io
 // Ecualizador de 10 bandas sobre un filter-chain NATIVO de PipeWire.
 // Reemplaza la integración con EasyEffects (cuyo CLI no aplica el DSP en EE 8).
 //
-// Depende del sink virtual "ambxst_eq_sink" que crea
-// ~/.config/pipewire/pipewire.conf.d/99-ambxst-eq.conf (10 filtros biquad).
+// Depende del sink virtual "matrix_eq_sink" que crea
+// ~/.config/pipewire/pipewire.conf.d/99-matrix-eq.conf (10 filtros biquad).
 // Las ganancias se cambian en vivo por params del nodo:
 //   pw-cli set-param <id> Props '{ params = [ "eq_band_N:Gain" <dB> ] }'
 Singleton {
@@ -31,8 +31,8 @@ Singleton {
     property var uiBands: []
     property bool uiPending: false
 
-    readonly property string sinkName: "ambxst_eq_sink"
-    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/ambxst/eq-gains"
+    readonly property string sinkName: "matrix_eq_sink"
+    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/matrix/eq-gains"
 
     property bool _initialized: false
     function initialize() {
@@ -77,7 +77,7 @@ Singleton {
         applyProcess.command = [
             "bash", "-c",
             root._resolveNode + '; [ -n "$node" ] && pw-cli set-param "$node" Props "{ params = [ $1 ] }"' + persistCmd,
-            "ambxst", root._paramsList(g), root.stateFile, root.gains.join(" ")
+            "matrix", root._paramsList(g), root.stateFile, root.gains.join(" ")
         ];
         applyProcess.running = true;
     }

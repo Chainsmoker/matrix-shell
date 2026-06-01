@@ -1,7 +1,7 @@
 //@ pragma UseQApplication
-//@ pragma ShellId ambxst
-//@ pragma DataDir $BASE/ambxst
-//@ pragma StateDir $BASE/ambxst
+//@ pragma ShellId matrix
+//@ pragma DataDir $BASE/matrix
+//@ pragma StateDir $BASE/matrix
 
 import QtQuick
 import Quickshell

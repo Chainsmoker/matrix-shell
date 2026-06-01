@@ -41,13 +41,13 @@ QtObject {
         const textdarkest = isLight ? toRGB(Qt.lighter(fg, 3.19)) : toRGB(Qt.darker(fg, 3.19))
 
         let css = `/**
- * @name Ambxst
- * @description A Discord recolor theme, generated with Ambxst.
+ * @name Matrix
+ * @description A Discord recolor theme, generated with Matrix.
  * @author Axenide
  * @version 1.0.0
  * @invite gHG9WHyNvH
- * @website https://axeni.de/ambxst
- * @source https://github.com/Axenide/Ambxst
+ * @website https://axeni.de/matrix
+ * @source https://github.com/Axenide/Matrix
  * @authorId 294856304969908224
  * @authorLink https://axeni.de
 */ 
@@ -79,7 +79,7 @@ QtObject {
 `
 
         const home = Quickshell.env("HOME")
-        const vesktopPath = home + "/.config/vesktop/themes/ambxst.css"
+        const vesktopPath = home + "/.config/vesktop/themes/matrix.css"
         
         const escape = (str) => {
             if (!str) return ""

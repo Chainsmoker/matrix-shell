@@ -14,7 +14,7 @@ When changes are made to axctl (in `/home/adriano/Repos/Axenide/axctl/`), manual
 The agent cannot test axctl changes directly because the daemon runs in the user's session environment.
 
 ## OVERVIEW
-Ambxst is a highly customizable Wayland shell built with Quickshell. It provides a unified panel (bar, dock, notch), dashboard, lockscreen, desktop widgets, and notification system, driven by a reactive JSON configuration system. Multi-monitor support via `Variants` on `Quickshell.screens`.
+Matrix is a highly customizable Wayland shell built with Quickshell. It provides a unified panel (bar, dock, notch), dashboard, lockscreen, desktop widgets, and notification system, driven by a reactive JSON configuration system. Multi-monitor support via `Variants` on `Quickshell.screens`.
 
 ## STRUCTURE
 ```
@@ -59,7 +59,7 @@ Ambxst is a highly customizable Wayland shell built with Quickshell. It provides
 | **Config Logic** | `config/Config.qml` | >3100 lines. `FileView` + `JsonAdapter` persistence |
 | **Transient State** | `modules/globals/GlobalStates.qml` | Window visibility, active modes, runtime flags |
 | **Services** | `modules/services/*.qml` | 30+ singletons. System integration layer |
-| **Theme/Colors** | `modules/theme/Colors.qml` | Watches `~/.cache/ambxst/colors.json` reactively |
+| **Theme/Colors** | `modules/theme/Colors.qml` | Watches `~/.cache/matrix/colors.json` reactively |
 | **Styling** | `modules/theme/Styling.qml` | `radius()`, `fontSize()`, `getStyledRectConfig()` |
 | **UI Primitives** | `modules/components/` | `StyledRect`, `BarPopup`, `SearchInput`, shaders |
 | **Dashboard** | `modules/widgets/dashboard/` | Tabbed hub with LRU lazy-loading |
@@ -118,7 +118,7 @@ qs -p shell.qml
 ./cli.sh
 
 # Install (Arch/Fedora/NixOS)
-curl -L get.axeni.de/ambxst | sh
+curl -L get.axeni.de/matrix | sh
 ```
 
 ## NOTES
@@ -128,7 +128,7 @@ curl -L get.axeni.de/ambxst | sh
 - `screenshotToolMode` in `GlobalStates.qml` is **DEPRECATED**.
 - Gemini AI provider doesn't support the `system` role; handled in `services/ai/strategies/`.
 - `axctl` is a core part of this project. It abstracts compositor interactions. It is one of Axenide's projects and the source code is available at `/home/adriano/Repos/Axenide/axctl/`.
-- We register a changelog in a website. The local repo for this website is at `/home/adriano/Repos/Axenide/web/`. The changelog entries are stored in `content/ambxst/changelog/` as Zola markdown files. Write following the structure by referencing other entries, and add links to PRs and issues when relevant. Only write a changelog when the user asks for it.
+- We register a changelog in a website. The local repo for this website is at `/home/adriano/Repos/Axenide/web/`. The changelog entries are stored in `content/matrix/changelog/` as Zola markdown files. Write following the structure by referencing other entries, and add links to PRs and issues when relevant. Only write a changelog when the user asks for it.
 
 - Some projects to keep in mind for reference:
   - DankMaterialShell (DMS): https://github.com/AvengeMedia/DankMaterialShell

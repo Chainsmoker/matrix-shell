@@ -1,21 +1,21 @@
-# NixOS module for Ambxst
+# NixOS module for Matrix
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.programs.ambxst;
+  cfg = config.programs.matrix;
 in {
-  options.programs.ambxst = {
-    enable = lib.mkEnableOption "Ambxst shell";
+  options.programs.matrix = {
+    enable = lib.mkEnableOption "Matrix shell";
 
     package = lib.mkOption {
       type = lib.types.package;
-      description = "The Ambxst package to use";
+      description = "The Matrix package to use";
     };
 
     fonts.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Whether to install Ambxst fonts (including Phosphor Icons)";
+      description = "Whether to install Matrix fonts (including Phosphor Icons)";
     };
   };
 

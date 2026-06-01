@@ -29,7 +29,7 @@ PanelWindow {
     color: "transparent"
 
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "ambxst:paint"
+    WlrLayershell.namespace: "matrix:paint"
     // Mientras cede a la tool de captura: suelta el teclado (deja que la maneje ella)
     WlrLayershell.keyboardFocus: (paint.visible && !paint.yielding) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore

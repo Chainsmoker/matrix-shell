@@ -19,7 +19,7 @@ PanelWindow {
     screen: targetScreen
 
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "ambxst:recording"
+    WlrLayershell.namespace: "matrix:recording"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 

@@ -17,7 +17,7 @@ PanelWindow {
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "ambxst:chatpanel"
+    WlrLayershell.namespace: "matrix:chatpanel"
     WlrLayershell.keyboardFocus: GlobalStates.chatPanelOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
@@ -320,7 +320,7 @@ PanelWindow {
 
                                 Text {
                                     Layout.alignment: Qt.AlignHCenter
-                                    text: "Ambxst Assistant"
+                                    text: Config.brandName + " Assistant"
                                     font.family: Config.theme.font
                                     font.pixelSize: Styling.fontSize(3)
                                     font.bold: true
@@ -665,7 +665,7 @@ PanelWindow {
                             Text {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
-                                text: "Mandale un mensaje a Ambxst..."
+                                text: "Mandale un mensaje a " + Config.brandName + "..."
                                 color: Colors.overSurfaceVariant
                                 opacity: chatInput.text.length === 0 ? 0.55 : 0
                                 font: chatInput.font

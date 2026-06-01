@@ -25,7 +25,7 @@ Singleton {
     // el dashboard, así que su `activePreset`/curva local se perdían (volvían a
     // "Flat" al reabrir). Lo guardamos acá, en el singleton, que sobrevive a la
     // recarga del tab. (No persiste entre reinicios de la shell; el EQ en sí sí,
-    // porque EasyEffects mantiene cargado el preset ambxst_eq.)
+    // porque EasyEffects mantiene cargado el preset matrix_eq.)
     property string uiPreset: ""
     property var uiBands: []
     property bool uiPending: false
@@ -106,14 +106,14 @@ Singleton {
             }
         };
 
-        root.activeOutputPreset = "ambxst_eq";
+        root.activeOutputPreset = "matrix_eq";
         // EE 8 lee los presets de $XDG_DATA_HOME (default ~/.local/share), no de
         // ~/.config. El JSON se pasa como argv ($1), no embebido en el script,
         // para no depender del escaping del shell.
         writePresetProcess.command = [
             "bash", "-c",
-            'dir="${XDG_DATA_HOME:-$HOME/.local/share}/easyeffects/output"; mkdir -p "$dir" && printf %s "$1" > "$dir/ambxst_eq.json" && easyeffects -l ambxst_eq',
-            "ambxst", JSON.stringify(preset)
+            'dir="${XDG_DATA_HOME:-$HOME/.local/share}/easyeffects/output"; mkdir -p "$dir" && printf %s "$1" > "$dir/matrix_eq.json" && easyeffects -l matrix_eq',
+            "matrix", JSON.stringify(preset)
         ];
         writePresetProcess.running = true;
     }

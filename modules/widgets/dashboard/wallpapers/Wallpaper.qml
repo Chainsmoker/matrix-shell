@@ -18,7 +18,7 @@ PanelWindow {
     }
 
     WlrLayershell.layer: WlrLayer.Background
-    WlrLayershell.namespace: "ambxst:wallpaper"
+    WlrLayershell.namespace: "matrix:wallpaper"
     exclusionMode: ExclusionMode.Ignore
 
     color: "transparent"
@@ -41,7 +41,7 @@ PanelWindow {
     property int thumbnailsVersion: 0
 
     // QUICKSHELL-GIT: property string mpvShaderDir: Quickshell.cacheDir + "/mpv_shaders_" + (currentScreenName ? currentScreenName : "ALL")
-    property string mpvShaderDir: Quickshell.env("HOME") + "/.cache/ambxst/mpv_shaders_" + (currentScreenName ? currentScreenName : "ALL")
+    property string mpvShaderDir: Quickshell.env("HOME") + "/.cache/matrix/mpv_shaders_" + (currentScreenName ? currentScreenName : "ALL")
     property string mpvShaderPath: ""
     property bool mpvShaderReady: false
 
@@ -76,7 +76,7 @@ PanelWindow {
         when: GlobalStates.wallpaperManager !== null && GlobalStates.wallpaperManager !== wallpaper
     }
 
-    property string colorPresetsDir: Quickshell.env("HOME") + "/.config/ambxst/colors"
+    property string colorPresetsDir: Quickshell.env("HOME") + "/.config/matrix/colors"
     property string officialColorPresetsDir: decodeURIComponent(Qt.resolvedUrl("../../../../assets/colors").toString().replace("file://", ""))
     onColorPresetsDirChanged: console.log("Color Presets Directory:", colorPresetsDir)
     property list<string> colorPresets: []
@@ -114,7 +114,7 @@ PanelWindow {
         var officialFile = officialColorPresetsDir + "/" + activeColorPreset + "/" + mode;
         var userFile = colorPresetsDir + "/" + activeColorPreset + "/" + mode;
         // QUICKSHELL-GIT: var dest = Quickshell.cachePath("colors.json");
-        var dest = Quickshell.env("HOME") + "/.cache/ambxst/colors.json";
+        var dest = Quickshell.env("HOME") + "/.cache/matrix/colors.json";
 
         // Try official first, then user. Use bash conditional.
         var cmd = "if [ -f '" + officialFile + "' ]; then cp '" + officialFile + "' '" + dest + "'; else cp '" + userFile + "' '" + dest + "'; fi";
@@ -155,7 +155,7 @@ PanelWindow {
 
         // Build the proxy path
         // QUICKSHELL-GIT: var thumbnailPath = Quickshell.cacheDir + "/thumbnails/" + relativeDir + "/" + thumbnailName;
-        var thumbnailPath = Quickshell.env("HOME") + "/.cache/ambxst" + "/thumbnails/" + relativeDir + "/" + thumbnailName;
+        var thumbnailPath = Quickshell.env("HOME") + "/.cache/matrix" + "/thumbnails/" + relativeDir + "/" + thumbnailName;
         return thumbnailPath;
     }
 
@@ -201,7 +201,7 @@ PanelWindow {
         if (fileType === 'video' || fileType === 'gif') {
             var fileName = filePath.split('/').pop();
             // QUICKSHELL-GIT: var cachePath = Quickshell.cacheDir + "/lockscreen/" + fileName + ".jpg";
-            var cachePath = Quickshell.env("HOME") + "/.cache/ambxst" + "/lockscreen/" + fileName + ".jpg";
+            var cachePath = Quickshell.env("HOME") + "/.cache/matrix" + "/lockscreen/" + fileName + ".jpg";
             return cachePath;
         }
 
@@ -218,7 +218,7 @@ PanelWindow {
 
         var scriptPath = decodeURIComponent(Qt.resolvedUrl("../../../../scripts/lockwall.py").toString().replace("file://", ""));
         // QUICKSHELL-GIT: var dataPath = Quickshell.cacheDir;
-        var dataPath = Quickshell.env("HOME") + "/.cache/ambxst";
+        var dataPath = Quickshell.env("HOME") + "/.cache/matrix";
 
         lockscreenWallpaperScript.command = ["python3", scriptPath, filePath, dataPath];
 
@@ -404,8 +404,8 @@ PanelWindow {
             wallpaperConfig.adapter.wallPath = path;
     }
 
-    // property string mpvSocket: "/tmp/ambxst_mpv_socket"
-    property string mpvSocket: "/tmp/ambxst_mpv_socket_" + (currentScreenName ? currentScreenName : "ALL")
+    // property string mpvSocket: "/tmp/matrix_mpv_socket"
+    property string mpvSocket: "/tmp/matrix_mpv_socket_" + (currentScreenName ? currentScreenName : "ALL")
 
     function runMatugenForCurrentWallpaper() {
         if (activeColorPreset) {
@@ -481,7 +481,7 @@ PanelWindow {
     Process {
         id: mpvSyncProcess
         running: false
-        command: ["bash", "-c", "for sock in /tmp/ambxst_mpv_socket_*; do echo '{ \"command\": [\"set_property\", \"time-pos\", 0] }' | socat - \"$sock\" 2>/dev/null; done"]
+        command: ["bash", "-c", "for sock in /tmp/matrix_mpv_socket_*; do echo '{ \"command\": [\"set_property\", \"time-pos\", 0] }' | socat - \"$sock\" 2>/dev/null; done"]
         onExited: code => {
             console.log("Video sync broadcast completed with code:", code);
         }
@@ -682,7 +682,7 @@ PanelWindow {
     FileView {
         id: wallpaperConfig
         // QUICKSHELL-GIT: path: Quickshell.cachePath("wallpapers.json")
-        path: Quickshell.env("HOME") + "/.cache/ambxst/wallpapers.json"
+        path: Quickshell.env("HOME") + "/.cache/matrix/wallpapers.json"
         watchChanges: true
 
         onLoaded: {
@@ -775,7 +775,7 @@ PanelWindow {
         id: checkWallpapersJson
         running: false
         // QUICKSHELL-GIT: command: ["test", "-f", Quickshell.cachePath("wallpapers.json")]
-        command: ["test", "-f", Quickshell.env("HOME") + "/.cache/ambxst/wallpapers.json"]
+        command: ["test", "-f", Quickshell.env("HOME") + "/.cache/matrix/wallpapers.json"]
 
         onExited: function (exitCode) {
             if (exitCode !== 0) {
@@ -844,7 +844,7 @@ PanelWindow {
         id: thumbnailGeneratorScript
         running: false
         // QUICKSHELL-GIT: command: ["python3", decodeURIComponent(Qt.resolvedUrl("../../../../scripts/thumbgen.py").toString().replace("file://", "")), Quickshell.cacheDir + "/wallpapers.json", Quickshell.cacheDir, fallbackDir]
-        command: ["python3", decodeURIComponent(Qt.resolvedUrl("../../../../scripts/thumbgen.py").toString().replace("file://", "")), Quickshell.env("HOME") + "/.cache/ambxst" + "/wallpapers.json", Quickshell.env("HOME") + "/.cache/ambxst", fallbackDir]
+        command: ["python3", decodeURIComponent(Qt.resolvedUrl("../../../../scripts/thumbgen.py").toString().replace("file://", "")), Quickshell.env("HOME") + "/.cache/matrix" + "/wallpapers.json", Quickshell.env("HOME") + "/.cache/matrix", fallbackDir]
 
         stdout: StdioCollector {
             onStreamFinished: {

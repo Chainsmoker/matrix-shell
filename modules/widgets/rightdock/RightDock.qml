@@ -26,7 +26,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "ambxst:rightdock"
+    WlrLayershell.namespace: "matrix:rightdock"
     exclusionMode: ExclusionMode.Ignore
 
     readonly property bool isOpen: GlobalStates.rightDockOpen

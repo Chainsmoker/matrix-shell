@@ -11,8 +11,8 @@ import Quickshell.Io
 QtObject {
     id: root
 
-    readonly property string appId: "ambxst"
-    readonly property string ipcPipe: "/tmp/ambxst_ipc.pipe"
+    readonly property string appId: "matrix"
+    readonly property string ipcPipe: "/tmp/matrix_ipc.pipe"
 
     // High-performance Pipe Listener (Daemon mode)
     property Process pipeListener: Process {
@@ -85,7 +85,7 @@ QtObject {
     }
 
     property IpcHandler ipcHandler: IpcHandler {
-        target: "ambxst"
+        target: "matrix"
 
         function run(command: string) {
             root.run(command);

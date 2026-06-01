@@ -9,7 +9,7 @@ import qs.modules.services
 Singleton {
     id: root
 
-    readonly property string thumbDir: "/tmp/ambxst-switcher-thumbs"
+    readonly property string thumbDir: "/tmp/matrix-switcher-thumbs"
     property int tick: 0
     signal captured()
 

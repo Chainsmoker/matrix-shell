@@ -15,7 +15,7 @@ Singleton {
 
     property string model: "llama-3.3-70b-versatile"
     readonly property string endpoint: "https://api.groq.com/openai/v1/chat/completions"
-    readonly property string tmpDir: "/tmp/ambxst-translator"
+    readonly property string tmpDir: "/tmp/matrix-translator"
 
     property string output: ""
     property bool loading: false

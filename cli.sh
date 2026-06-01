@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Ambxst CLI - It was needed, so here it is. lol
+# Matrix CLI - It was needed, so here it is. lol
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Use environment variables if set by flake, otherwise fall back to PATH
-QS_BIN="${AMBXST_QS:-qs}"
-NIXGL_BIN="${AMBXST_NIXGL:-}"
+QS_BIN="${MATRIX_QS:-qs}"
+NIXGL_BIN="${MATRIX_NIXGL:-}"
 
 if [ -z "${QML2_IMPORT_PATH:-}" ]; then
 	if command -v qs >/dev/null 2>&1; then
@@ -22,8 +22,8 @@ fi
 
 # Ensure config files exist - copy from preset if missing
 ensure_config_files() {
-	local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/ambxst/config"
-	local preset_dir="${SCRIPT_DIR}/assets/presets/Ambxst Default"
+	local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/matrix/config"
+	local preset_dir="${SCRIPT_DIR}/assets/presets/Matrix Default"
 
 	# Create config directory if it doesn't exist
 	mkdir -p "$config_dir"
@@ -39,13 +39,13 @@ ensure_config_files
 
 show_help() {
 	cat <<EOF
-Ambxst CLI - Desktop Environment Control
+Matrix CLI - Desktop Environment Control
 
-Usage: ambxst [COMMAND]
+Usage: matrix [COMMAND]
 
 Commands:
-    (none)                            Launch Ambxst
-    update                            Update Ambxst
+    (none)                            Launch Matrix
+    update                            Update Matrix
     refresh                           Refresh local/dev profile (for developers)
     lock                              Activate lockscreen
     brightness <percent> [monitor]    Set brightness (0-100)
@@ -54,51 +54,51 @@ Commands:
     brightness -r [monitor]           Restore saved brightness
     brightness -l                     List monitors and their brightness
     help                              Show this help message
-    version, -v, --version            Show Ambxst version
-    goodbye                           Uninstall Ambxst :(
+    version, -v, --version            Show Matrix version
+    goodbye                           Uninstall Matrix :(
     install <target>                    Install compositor config (hyprland)
     remove <target>                    Remove compositor config (hyprland)
 
 Examples:
-    ambxst brightness 75              Set all monitors to 75%
-    ambxst brightness 50 HDMI-A-1     Set HDMI-A-1 to 50%
-    ambxst brightness +10             Increase brightness by 10%
-    ambxst brightness -5 HDMI-A-1     Decrease HDMI-A-1 brightness by 5%
-    ambxst brightness 10 -s           Save current, then set all to 10%
-    ambxst brightness -s HDMI-A-1     Save current brightness of HDMI-A-1
-    ambxst brightness -r              Restore saved brightness
+    matrix brightness 75              Set all monitors to 75%
+    matrix brightness 50 HDMI-A-1     Set HDMI-A-1 to 50%
+    matrix brightness +10             Increase brightness by 10%
+    matrix brightness -5 HDMI-A-1     Decrease HDMI-A-1 brightness by 5%
+    matrix brightness 10 -s           Save current, then set all to 10%
+    matrix brightness -s HDMI-A-1     Save current brightness of HDMI-A-1
+    matrix brightness -r              Restore saved brightness
 
 EOF
 }
 
-AMBXST_HYPR_CONF_SOURCE="source = ~/.local/share/ambxst/hyprland.conf"
-AMBXST_HYPR_LUA_SOURCE='loadfile(os.getenv("HOME") .. "/.local/share/ambxst/hyprland.lua")()'
-AMBXST_HYPR_CONF_BLOCK=$(
+MATRIX_HYPR_CONF_SOURCE="source = ~/.local/share/matrix/hyprland.conf"
+MATRIX_HYPR_LUA_SOURCE='loadfile(os.getenv("HOME") .. "/.local/share/matrix/hyprland.lua")()'
+MATRIX_HYPR_CONF_BLOCK=$(
 	cat <<'EOF'
-# Ambxst
-source = ~/.local/share/ambxst/hyprland.conf
+# Matrix
+source = ~/.local/share/matrix/hyprland.conf
 
 # OVERRIDES
-# Down here you can write or source anything that you want to override from Ambxst's settings.
+# Down here you can write or source anything that you want to override from Matrix's settings.
 EOF
 )
-AMBXST_HYPR_LUA_BLOCK=$(
+MATRIX_HYPR_LUA_BLOCK=$(
 	cat <<'EOF'
--- Ambxst
-loadfile(os.getenv("HOME") .. "/.local/share/ambxst/hyprland.lua")()
+-- Matrix
+loadfile(os.getenv("HOME") .. "/.local/share/matrix/hyprland.lua")()
 
 -- OVERRIDES
--- Down here you can write or source anything that you want to override from Ambxst's settings.
+-- Down here you can write or source anything that you want to override from Matrix's settings.
 EOF
 )
 
-append_ambxst_hyprland_block() {
+append_matrix_hyprland_block() {
 	local conf="$1"
 	local source="$2"
 	local block="$3"
 
 	if [ -f "$conf" ] && grep -qF "$source" "$conf"; then
-		echo "Ambxst Hyprland block already present in $conf"
+		echo "Matrix Hyprland block already present in $conf"
 		return 0
 	fi
 
@@ -108,10 +108,10 @@ append_ambxst_hyprland_block() {
 		printf "%s\n" "$block" >"$conf"
 	fi
 
-	echo "Added Ambxst Hyprland block to $conf"
+	echo "Added Matrix Hyprland block to $conf"
 }
 
-remove_ambxst_hyprland_block() {
+remove_matrix_hyprland_block() {
 	local conf="$1"
 	local source="$2"
 
@@ -123,12 +123,12 @@ remove_ambxst_hyprland_block() {
 	awk -v source="$source" '
 		function is_remove(line) {
 			return line == source \
-				|| line == "# Ambxst" \
-				|| line == "-- Ambxst" \
+				|| line == "# Matrix" \
+				|| line == "-- Matrix" \
 				|| line == "# OVERRIDES" \
 				|| line == "-- OVERRIDES" \
-				|| line == "# Down here you can write or source anything that you want to override from Ambxst'\''s settings." \
-				|| line == "-- Down here you can write or source anything that you want to override from Ambxst'\''s settings."
+				|| line == "# Down here you can write or source anything that you want to override from Matrix'\''s settings." \
+				|| line == "-- Down here you can write or source anything that you want to override from Matrix'\''s settings."
 		}
 		{
 			lines[NR] = $0
@@ -148,10 +148,10 @@ remove_ambxst_hyprland_block() {
 		}
 	' "$conf" >"${conf}.tmp" && mv "${conf}.tmp" "$conf"
 
-	echo "Removed Ambxst Hyprland block from $conf"
+	echo "Removed Matrix Hyprland block from $conf"
 }
 
-find_ambxst_pid() {
+find_matrix_pid() {
 	# Try to find QuickShell process running shell.qml
 	# QuickShell binary can be named 'qs' or 'quickshell'
 	local pid
@@ -181,9 +181,9 @@ find_ambxst_pid() {
 	echo "$pid"
 }
 
-find_ambxst_pid_cached() {
+find_matrix_pid_cached() {
 	# Optimized PID lookup: check cache file first, then fall back to pgrep
-	local pid_file="/tmp/ambxst.pid"
+	local pid_file="/tmp/matrix.pid"
 	local pid=""
 
 	# Check if cache file exists and process is alive
@@ -199,42 +199,42 @@ find_ambxst_pid_cached() {
 	fi
 
 	# Fallback: use expensive pgrep search
-	pid=$(find_ambxst_pid)
+	pid=$(find_matrix_pid)
 	echo "$pid"
 }
 
-restart_ambxst() {
+restart_matrix() {
 	# Kill axctl processes first (they survive parent death when forked/detached)
 	pkill -f "axctl.*daemon" 2>/dev/null || true
 	pkill -f "axctl subscribe" 2>/dev/null || true
 
-	PID=$(find_ambxst_pid_cached)
+	PID=$(find_matrix_pid_cached)
 	if [ -n "$PID" ]; then
-		echo "Stopping Ambxst (PID $PID)..."
+		echo "Stopping Matrix (PID $PID)..."
 		kill "$PID"
 		# Wait for process to exit
 		while kill -0 "$PID" 2>/dev/null; do
 			sleep 0.1
 		done
 	fi
-	echo "Starting Ambxst..."
+	echo "Starting Matrix..."
 	# Relaunch the script in background
 	nohup "$0" >/dev/null 2>&1 &
 }
 
 case "${1:-}" in
 update)
-	echo "Updating Ambxst..."
-	curl -fsSL get.axeni.de/ambxst | sh
-	restart_ambxst
+	echo "Updating Matrix..."
+	curl -fsSL get.axeni.de/matrix | sh
+	restart_matrix
 	;;
 refresh)
-	echo "Refreshing Ambxst profile..."
-	exec nix profile upgrade Ambxst --refresh --impure
+	echo "Refreshing Matrix profile..."
+	exec nix profile upgrade Matrix --refresh --impure
 	;;
 run)
 	CMD="${2:-}"
-	PIPE="/tmp/ambxst_ipc.pipe"
+	PIPE="/tmp/matrix_ipc.pipe"
 
 	if [ -z "$CMD" ]; then
 		echo "Error: No command specified for run"
@@ -248,42 +248,42 @@ run)
 	fi
 
 	# Fallback path: Use QS IPC with cached PID lookup
-	PID=$(find_ambxst_pid_cached)
+	PID=$(find_matrix_pid_cached)
 	if [ -z "$PID" ]; then
-		echo "Error: Ambxst is not running"
+		echo "Error: Matrix is not running"
 		exit 1
 	fi
 
-	qs ipc --pid "$PID" call ambxst run "$CMD" 2>/dev/null || {
+	qs ipc --pid "$PID" call matrix run "$CMD" 2>/dev/null || {
 		echo "Error: Could not run command '$CMD'"
 		exit 1
 	}
 	;;
 lock)
-	PID=$(find_ambxst_pid_cached)
+	PID=$(find_matrix_pid_cached)
 	if [ -z "$PID" ]; then
-		echo "Error: Ambxst is not running"
+		echo "Error: Matrix is not running"
 		exit 1
 	fi
-	qs ipc --pid "$PID" call ambxst run lockscreen 2>/dev/null || {
+	qs ipc --pid "$PID" call matrix run lockscreen 2>/dev/null || {
 		echo "Error: Could not activate lockscreen"
 		exit 1
 	}
 	;;
 reload)
-	restart_ambxst
+	restart_matrix
 	;;
 quit)
 	# Kill axctl processes first
 	pkill -f "axctl.*daemon" 2>/dev/null || true
 	pkill -f "axctl subscribe" 2>/dev/null || true
 
-	PID=$(find_ambxst_pid_cached)
+	PID=$(find_matrix_pid_cached)
 	if [ -n "$PID" ]; then
-		echo "Stopping Ambxst (PID $PID)..."
+		echo "Stopping Matrix (PID $PID)..."
 		kill "$PID"
 	else
-		echo "Ambxst is not running"
+		echo "Matrix is not running"
 	fi
 	;;
 screen)
@@ -301,7 +301,7 @@ screen)
 			notify-send "Screen On" "Not supported on this compositor yet"
 		fi
 	else
-		echo "Usage: ambxst screen [on|off]"
+		echo "Usage: matrix screen [on|off]"
 		exit 1
 	fi
 	;;
@@ -316,13 +316,13 @@ suspend)
 	fi
 	;;
 brightness)
-	PID=$(find_ambxst_pid_cached)
+	PID=$(find_matrix_pid_cached)
 	if [ -z "$PID" ]; then
-		echo "Error: Ambxst is not running"
+		echo "Error: Matrix is not running"
 		exit 1
 	fi
 
-	BRIGHTNESS_SAVE_FILE="/tmp/ambxst_brightness_saved.txt"
+	BRIGHTNESS_SAVE_FILE="/tmp/matrix_brightness_saved.txt"
 
 	# Parse arguments
 	ARG2="${2:-}"
@@ -447,7 +447,7 @@ brightness)
 		exit 0
 	else
 		echo "Error: Invalid brightness value. Must be 0-100 or +/-delta."
-		echo "Run 'ambxst help' for usage information"
+		echo "Run 'matrix help' for usage information"
 		exit 1
 	fi
 
@@ -536,7 +536,7 @@ brightness)
 	fi
 	;;
 version | -v | --version)
-	echo "Ambxst $(cat "${SCRIPT_DIR}/version")"
+	echo "Matrix $(cat "${SCRIPT_DIR}/version")"
 	;;
 install)
 	TARGET="${2:-}"
@@ -549,9 +549,9 @@ install)
 		mkdir -p "$HYPR_DIR"
 
 		if [ -f "$HYPR_LUA" ] || [ ! -f "$HYPR_CONF" ]; then
-			append_ambxst_hyprland_block "$HYPR_LUA" "$AMBXST_HYPR_LUA_SOURCE" "$AMBXST_HYPR_LUA_BLOCK"
+			append_matrix_hyprland_block "$HYPR_LUA" "$MATRIX_HYPR_LUA_SOURCE" "$MATRIX_HYPR_LUA_BLOCK"
 		else
-			append_ambxst_hyprland_block "$HYPR_CONF" "$AMBXST_HYPR_CONF_SOURCE" "$AMBXST_HYPR_CONF_BLOCK"
+			append_matrix_hyprland_block "$HYPR_CONF" "$MATRIX_HYPR_CONF_SOURCE" "$MATRIX_HYPR_CONF_BLOCK"
 		fi
 	else
 		echo "Error: Unknown target '$TARGET'. Supported: hyprland"
@@ -565,15 +565,15 @@ remove)
 		HYPR_LUA="$HYPR_DIR/hyprland.lua"
 		HYPR_CONF="$HYPR_DIR/hyprland.conf"
 
-		remove_ambxst_hyprland_block "$HYPR_LUA" "$AMBXST_HYPR_LUA_SOURCE"
-		remove_ambxst_hyprland_block "$HYPR_CONF" "$AMBXST_HYPR_CONF_SOURCE"
+		remove_matrix_hyprland_block "$HYPR_LUA" "$MATRIX_HYPR_LUA_SOURCE"
+		remove_matrix_hyprland_block "$HYPR_CONF" "$MATRIX_HYPR_CONF_SOURCE"
 	else
 		echo "Error: Unknown target '$TARGET'. Supported: hyprland"
 		exit 1
 	fi
 	;;
 goodbye)
-	echo "Uninstalling Ambxst..."
+	echo "Uninstalling Matrix..."
 
 	read -p "Are you sure? (y/N): " -n 1 -r
 	echo
@@ -583,13 +583,13 @@ goodbye)
 	fi
 
 	if [ -f /etc/NIXOS ]; then
-		if nix profile list 2>/dev/null | grep -q "Ambxst"; then
+		if nix profile list 2>/dev/null | grep -q "Matrix"; then
 			echo "Removing from nix profile..."
-			nix profile remove Ambxst
-		elif command -v ambxst >/dev/null 2>&1; then
-			echo "Ambxst was declared in this system. Please remove it from your configuration in order to uninstall."
+			nix profile remove Matrix
+		elif command -v matrix >/dev/null 2>&1; then
+			echo "Matrix was declared in this system. Please remove it from your configuration in order to uninstall."
 		else
-			echo "Ambxst is not installed."
+			echo "Matrix is not installed."
 		fi
 		exit 0
 	fi
@@ -601,16 +601,16 @@ goodbye)
 		REMOVE_CONFIG=true
 	fi
 
-	rm -rf "$HOME/.local/src/ambxst"
-	rm -rf "$HOME/.local/share/ambxst"
-	rm -rf "$HOME/.local/state/ambxst"
+	rm -rf "$HOME/.local/src/matrix"
+	rm -rf "$HOME/.local/share/matrix"
+	rm -rf "$HOME/.local/state/matrix"
 
 	if [ "$REMOVE_CONFIG" = true ]; then
-		rm -rf "$HOME/.config/ambxst"
+		rm -rf "$HOME/.config/matrix"
 		echo "Configuration files removed."
 	fi
 
-	echo "Ambxst uninstalled. :("
+	echo "Matrix uninstalled. :("
 	;;
 help | --help | -h)
 	show_help
@@ -631,7 +631,7 @@ help | --help | -h)
 	unset HL_INITIAL_WORKSPACE_TOKEN
 
 	# Cache this script's PID before exec (for fast PID lookups in future CLI calls)
-	echo $$ >/tmp/ambxst.pid
+	echo $$ >/tmp/matrix.pid
 
 	# Launch QuickShell with the main shell.qml
 	# If NIXGL_BIN is set (NixOS/Nix setup), use it. Otherwise, just run qs directly.
@@ -643,7 +643,7 @@ help | --help | -h)
 	;;
 *)
 	echo "Error: Unknown command '$1'"
-	echo "Run 'ambxst help' for usage information"
+	echo "Run 'matrix help' for usage information"
 	exit 1
 	;;
 esac

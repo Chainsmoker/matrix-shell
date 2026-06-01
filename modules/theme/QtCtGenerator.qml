@@ -168,8 +168,8 @@ QtObject {
         ini += "\n"
 
         ini += "[General]\n"
-        ini += "ColorScheme=Ambxst\n"
-        ini += "Name=Ambxst\n"
+        ini += "ColorScheme=Matrix\n"
+        ini += "Name=Matrix\n"
         ini += "shadeSortColumn=true\n"
         ini += "\n"
         
@@ -194,7 +194,7 @@ QtObject {
         // Single command to ensure dirs and write files
         const cmd = `
             mkdir -p "${qt5Dir}" "${qt6Dir}" && \\
-            echo "${ini}" | tee "${qt5Dir}/ambxst.colors" "${qt6Dir}/ambxst.colors" > /dev/null
+            echo "${ini}" | tee "${qt5Dir}/matrix.colors" "${qt6Dir}/matrix.colors" > /dev/null
         `
         
         writerProcess.command = ["sh", "-c", cmd]

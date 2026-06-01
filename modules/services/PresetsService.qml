@@ -16,7 +16,7 @@ Singleton {
     property string activePreset: ""
 
     // Config directory paths
-    readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/ambxst"
+    readonly property string configDir: (Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")) + "/matrix"
     readonly property string presetsDir: configDir + "/presets"
     readonly property string assetsPresetsDir: Qt.resolvedUrl("../../assets/presets").toString().replace("file://", "")
     readonly property string activePresetFile: presetsDir + "/active_preset"
@@ -117,19 +117,19 @@ Singleton {
             const jsonFile = configFile.replace('.js', '.json')
             if (root.excludedFiles.includes(jsonFile)) continue;
 
-            // The source is configDir (~/.config/Ambxst), NOT configDir/config
-            // But wait, the configDir property is defined as ~/.config/Ambxst below?
+            // The source is configDir (~/.config/Matrix), NOT configDir/config
+            // But wait, the configDir property is defined as ~/.config/Matrix below?
             // Let's check the property definition.
-            // property string configDir: ... + "/Ambxst"
-            // But Config.qml says configDir is ... + "/Ambxst/config"
+            // property string configDir: ... + "/Matrix"
+            // But Config.qml says configDir is ... + "/Matrix/config"
             // We need to match Config.qml's path.
             
-            // In Config.qml: property string configDir: ... + "/Ambxst/config"
-            // Here: readonly property string configDir: ... + "/Ambxst"
+            // In Config.qml: property string configDir: ... + "/Matrix/config"
+            // Here: readonly property string configDir: ... + "/Matrix"
             // This is a mismatch!
             
             // We should use the same path as Config.qml for reading/writing config files.
-            // Let's assume the files are in .../Ambxst/config based on Config.qml and ls output.
+            // Let's assume the files are in .../Matrix/config based on Config.qml and ls output.
             
             const srcPath = configDir + "/config/" + jsonFile 
             const dstPath = presetPath + "/" + jsonFile

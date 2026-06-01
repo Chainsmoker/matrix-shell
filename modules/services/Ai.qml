@@ -14,8 +14,8 @@ Singleton {
     // PROPERTIES
     // ============================================
 
-    property string chatDir: Quickshell.env("HOME") + "/.local/share/ambxst/chats"
-    property string tmpDir: "/tmp/ambxst-ai"
+    property string chatDir: Quickshell.env("HOME") + "/.local/share/matrix/chats"
+    property string tmpDir: "/tmp/matrix-ai"
 
     property list<AiModel> models: []
 

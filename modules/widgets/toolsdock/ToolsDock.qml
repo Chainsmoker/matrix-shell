@@ -25,7 +25,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "ambxst:toolsdock"
+    WlrLayershell.namespace: "matrix:toolsdock"
     // Permite escribir en los campos (chat/clipboard/notes/translate) cuando está abierto.
     WlrLayershell.keyboardFocus: GlobalStates.toolsDockOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
@@ -45,7 +45,7 @@ PanelWindow {
     property int chatSubTab: 0
 
     readonly property var tabMeta: [
-        { title: "Chat", sub: "Ambxst Ai Assistant", ico: Icons.robot },
+        { title: "Chat", sub: Config.brandName + " Ai Assistant", ico: Icons.robot },
         { title: "Clipboard", sub: "Clipboard History", ico: Icons.clipboard },
         { title: "Notes", sub: "Local Pastebin", ico: Icons.note },
         { title: "Translate", sub: "Groq · Llama 3.3 70B", ico: Icons.globe },
@@ -541,7 +541,7 @@ PanelWindow {
 
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "Ambxst Ai Assistant"
+                        text: Config.brandName + " Ai Assistant"
                         font.family: Config.theme.font
                         font.capitalization: Font.Capitalize
                         font.pixelSize: Styling.fontSize(4)
@@ -877,7 +877,7 @@ PanelWindow {
                                 Text {
                                     anchors.fill: parent
                                     verticalAlignment: Text.AlignVCenter
-                                    text: "Ask Ambxst something..."
+                                    text: "Ask " + Config.brandName + " something..."
                                     color: Colors.outline
                                     opacity: chatInput.text.length === 0 ? 0.7 : 0
                                     font: chatInput.font

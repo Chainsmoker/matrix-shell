@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Notifications
+import qs.config
 
 Singleton {
     id: root
@@ -155,7 +156,7 @@ Singleton {
     FileView {
         id: notifFileView
         // QUICKSHELL-GIT: path: Quickshell.cachePath("notifications.json")
-        path: Quickshell.env("HOME") + "/.cache/ambxst/notifications.json"
+        path: Quickshell.env("HOME") + "/.cache/matrix/notifications.json"
         onLoaded: loadNotifications()
     }
 
@@ -360,7 +361,7 @@ Singleton {
             "id": notificationId,
             "actions": options.actions || [],
             "appIcon": options.appIcon || "",
-            "appName": options.appName || "Ambxst",
+            "appName": options.appName || Config.brandName,
             "body": options.body || "",
             "image": options.image || "",
             "summary": options.summary || "",

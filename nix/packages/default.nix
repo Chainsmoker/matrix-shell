@@ -1,4 +1,4 @@
-# Main Ambxst package
+# Main Matrix package
 { pkgs, lib, self, system, axctl, version }:
 
 let
@@ -25,23 +25,23 @@ let
     ++ fontsPkgs
     ++ tesseractPkgs;
 
-  envAmbxst = pkgs.buildEnv {
-    name = "Ambxst-env";
+  envMatrix = pkgs.buildEnv {
+    name = "Matrix-env";
     paths = baseEnv;
   };
 
   # Create fontconfig configuration to find bundled fonts
-  fontconfigConf = pkgs.writeTextDir "etc/fonts/conf.d/99-ambxst-fonts.conf" ''
+  fontconfigConf = pkgs.writeTextDir "etc/fonts/conf.d/99-matrix-fonts.conf" ''
     <?xml version="1.0"?>
     <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
     <fontconfig>
-      <dir>${envAmbxst}/share/fonts</dir>
+      <dir>${envMatrix}/share/fonts</dir>
     </fontconfig>
   '';
 
   # Copy shell sources to the Nix store
   shellSrc = pkgs.stdenv.mkDerivation {
-    pname = "ambxst-shell";
+    pname = "matrix-shell";
     inherit version;
     src = lib.cleanSource self;
     dontBuild = true;
@@ -51,12 +51,12 @@ let
     '';
   };
 
-  launcher = pkgs.writeShellScriptBin "ambxst" ''
-    export AMBXST_QS="${quickshellPkg}/bin/qs"
-    export PATH="${envAmbxst}/bin:$PATH"
+  launcher = pkgs.writeShellScriptBin "matrix" ''
+    export MATRIX_QS="${quickshellPkg}/bin/qs"
+    export PATH="${envMatrix}/bin:$PATH"
 
-    # Set QML2_IMPORT_PATH to include modules from envAmbxst (like syntax-highlighting)
-    export QML2_IMPORT_PATH="${envAmbxst}/lib/qt-6/qml:$QML2_IMPORT_PATH"
+    # Set QML2_IMPORT_PATH to include modules from envMatrix (like syntax-highlighting)
+    export QML2_IMPORT_PATH="${envMatrix}/lib/qt-6/qml:$QML2_IMPORT_PATH"
     export QML_IMPORT_PATH="$QML2_IMPORT_PATH"
 
     # Make bundled fonts available to fontconfig
@@ -67,7 +67,7 @@ let
   '';
 
 in pkgs.buildEnv {
-  name = "Ambxst-${version}";
-  paths = [ envAmbxst launcher ];
-  meta.mainProgram = "ambxst";
+  name = "Matrix-${version}";
+  paths = [ envMatrix launcher ];
+  meta.mainProgram = "matrix";
 }

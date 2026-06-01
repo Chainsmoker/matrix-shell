@@ -18,17 +18,17 @@ Item {
 
     property string currentSection: ""
 
-    // ── File picker preference (yad | yazi) — read/written by ambxst-pick ─────
+    // ── File picker preference (yad | yazi) — read/written by matrix-pick ─────
     property string pickerPref: "yad"
     function setPicker(v) {
         root.pickerPref = v;
-        writePickerProc.command = ["sh", "-c", "mkdir -p \"$HOME/.config/ambxst\" && printf '%s' '" + v + "' > \"$HOME/.config/ambxst/filepicker\""];
+        writePickerProc.command = ["sh", "-c", "mkdir -p \"$HOME/.config/matrix\" && printf '%s' '" + v + "' > \"$HOME/.config/matrix/filepicker\""];
         writePickerProc.running = true;
     }
     Process {
         id: readPickerProc
         running: true
-        command: ["sh", "-c", "cat \"$HOME/.config/ambxst/filepicker\" 2>/dev/null"]
+        command: ["sh", "-c", "cat \"$HOME/.config/matrix/filepicker\" 2>/dev/null"]
         stdout: StdioCollector {
             id: readPickerOut
         }
@@ -889,7 +889,7 @@ Item {
                         }
 
                         Text {
-                            text: "Dialog used when Ambxst asks you to choose a file or folder"
+                            text: "Dialog used when " + Config.brandName + " asks you to choose a file or folder"
                             font.family: Config.theme.font
                             font.pixelSize: Styling.fontSize(-2)
                             color: Colors.overSurfaceVariant

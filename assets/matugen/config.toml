@@ -1,6 +1,6 @@
-[templates.ambxst]
+[templates.matrix]
 input_path = "colors.json"
-output_path = "~/.cache/ambxst/colors.json"
+output_path = "~/.cache/matrix/colors.json"
 
 [config.custom_colors.red]
 color = "#FF0000"

@@ -21,7 +21,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "ambxst:sidenotch"
+    WlrLayershell.namespace: "matrix:sidenotch"
     exclusionMode: ExclusionMode.Ignore
 
     // Reservar bar

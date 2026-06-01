@@ -20,7 +20,7 @@ PanelWindow {
     color: "transparent"
 
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "ambxst:workspaceswitcher"
+    WlrLayershell.namespace: "matrix:workspaceswitcher"
     WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     readonly property var screenVisibilities: Visibilities.getForScreen(screen.name)

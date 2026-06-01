@@ -10,9 +10,9 @@ import hashlib
 
 # Setup Cache Directory
 CACHE_DIR = os.path.expanduser(os.environ.get("XDG_CACHE_HOME", "~/.cache"))
-AMBXST_CACHE_DIR = os.path.join(CACHE_DIR, "ambxst")
-os.makedirs(AMBXST_CACHE_DIR, exist_ok=True)
-IMAGES_DIR = os.path.join(AMBXST_CACHE_DIR, "images")
+MATRIX_CACHE_DIR = os.path.join(CACHE_DIR, "matrix")
+os.makedirs(MATRIX_CACHE_DIR, exist_ok=True)
+IMAGES_DIR = os.path.join(MATRIX_CACHE_DIR, "images")
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
 def download_image(url):
@@ -166,13 +166,13 @@ CVE_PAGES = 3   # OpenCVE pagina de a 10 → 3 páginas ≈ 30 CVEs (como el fee
 
 def _opencve_token():
     """Token de OpenCVE. Se lee de $OPENCVE_TOKEN o del archivo
-    $XDG_CONFIG_HOME/ambxst/opencve.token. NO se commitea (es un secreto)."""
+    $XDG_CONFIG_HOME/matrix/opencve.token. NO se commitea (es un secreto)."""
     tok = os.environ.get("OPENCVE_TOKEN", "").strip()
     if tok:
         return tok
     cfg = os.path.expanduser(os.environ.get("XDG_CONFIG_HOME", "~/.config"))
     try:
-        with open(os.path.join(cfg, "ambxst", "opencve.token")) as f:
+        with open(os.path.join(cfg, "matrix", "opencve.token")) as f:
             return f.read().strip()
     except OSError:
         return ""
@@ -228,14 +228,14 @@ def _opencve_score(detail):
 VULNCHECK_API = "https://api.vulncheck.com/v3"
 
 def _vulncheck_token():
-    """Token de VulnCheck. $VULNCHECK_TOKEN o ~/.config/ambxst/vulncheck.token.
+    """Token de VulnCheck. $VULNCHECK_TOKEN o ~/.config/matrix/vulncheck.token.
     Opcional: si falta, se omite el enriquecimiento de exploits (no es error)."""
     tok = os.environ.get("VULNCHECK_TOKEN", "").strip()
     if tok:
         return tok
     cfg = os.path.expanduser(os.environ.get("XDG_CONFIG_HOME", "~/.config"))
     try:
-        with open(os.path.join(cfg, "ambxst", "vulncheck.token")) as f:
+        with open(os.path.join(cfg, "matrix", "vulncheck.token")) as f:
             return f.read().strip()
     except OSError:
         return ""
@@ -274,7 +274,7 @@ def get_cves():
     if not token:
         raise RuntimeError(
             "OpenCVE token not configured "
-            "(set $OPENCVE_TOKEN or ~/.config/ambxst/opencve.token)")
+            "(set $OPENCVE_TOKEN or ~/.config/matrix/opencve.token)")
 
     # OpenCVE pagina de a 10; juntamos varias páginas para un feed más largo.
     results = []
@@ -418,7 +418,7 @@ def main():
     # Always ensure header image is downloaded
     download_header_image()
     
-    cache_file = os.path.join(AMBXST_CACHE_DIR, f"news_cache_{mode}.json")
+    cache_file = os.path.join(MATRIX_CACHE_DIR, f"news_cache_{mode}.json")
     
     # Check cache validity
     cache_valid = False

@@ -9,7 +9,7 @@ QtObject {
 
     property Process compositorProcess: Process {}
 
-    property var previousAmbxstBinds: ({})
+    property var previousMatrixBinds: ({})
     property var previousCustomBinds: []
     property bool hasPreviousBinds: false
 
@@ -45,31 +45,31 @@ QtObject {
         if (!Config.keybindsLoader.loaded)
             return;
 
-        const ambxst = Config.keybindsLoader.adapter.ambxst;
+        const matrix = Config.keybindsLoader.adapter.matrix;
 
-        // Store ambxst core keybinds
-        previousAmbxstBinds = {
-            ambxst: {
-                launcher: cloneKeybind(ambxst.launcher),
-                dashboard: cloneKeybind(ambxst.dashboard),
-                assistant: cloneKeybind(ambxst.assistant),
-                clipboard: cloneKeybind(ambxst.clipboard),
-                emoji: cloneKeybind(ambxst.emoji),
-                notes: cloneKeybind(ambxst.notes),
-                tmux: cloneKeybind(ambxst.tmux),
-                wallpapers: cloneKeybind(ambxst.wallpapers)
+        // Store matrix core keybinds
+        previousMatrixBinds = {
+            matrix: {
+                launcher: cloneKeybind(matrix.launcher),
+                dashboard: cloneKeybind(matrix.dashboard),
+                assistant: cloneKeybind(matrix.assistant),
+                clipboard: cloneKeybind(matrix.clipboard),
+                emoji: cloneKeybind(matrix.emoji),
+                notes: cloneKeybind(matrix.notes),
+                tmux: cloneKeybind(matrix.tmux),
+                wallpapers: cloneKeybind(matrix.wallpapers)
             },
             system: {
-                overview: cloneKeybind(ambxst.system.overview),
-                powermenu: cloneKeybind(ambxst.system.powermenu),
-                config: cloneKeybind(ambxst.system.config),
-                lockscreen: cloneKeybind(ambxst.system.lockscreen),
-                tools: cloneKeybind(ambxst.system.tools),
-                screenshot: cloneKeybind(ambxst.system.screenshot),
-                screenrecord: cloneKeybind(ambxst.system.screenrecord),
-                lens: cloneKeybind(ambxst.system.lens),
-                reload: ambxst.system.reload ? cloneKeybind(ambxst.system.reload) : null,
-                quit: ambxst.system.quit ? cloneKeybind(ambxst.system.quit) : null
+                overview: cloneKeybind(matrix.system.overview),
+                powermenu: cloneKeybind(matrix.system.powermenu),
+                config: cloneKeybind(matrix.system.config),
+                lockscreen: cloneKeybind(matrix.system.lockscreen),
+                tools: cloneKeybind(matrix.system.tools),
+                screenshot: cloneKeybind(matrix.system.screenshot),
+                screenrecord: cloneKeybind(matrix.system.screenrecord),
+                lens: cloneKeybind(matrix.system.lens),
+                reload: matrix.system.reload ? cloneKeybind(matrix.system.reload) : null,
+                quit: matrix.system.quit ? cloneKeybind(matrix.system.quit) : null
             }
         };
 
@@ -162,30 +162,30 @@ QtObject {
 
         // First, unbind previous keybinds if we have them stored
         if (hasPreviousBinds) {
-            // Unbind previous ambxst core keybinds
-            if (previousAmbxstBinds.ambxst) {
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.launcher));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.dashboard));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.assistant));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.clipboard));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.emoji));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.notes));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.tmux));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.ambxst.wallpapers));
+            // Unbind previous matrix core keybinds
+            if (previousMatrixBinds.matrix) {
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.launcher));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.dashboard));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.assistant));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.clipboard));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.emoji));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.notes));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.tmux));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.matrix.wallpapers));
             }
 
-            // Unbind previous ambxst system keybinds
-            if (previousAmbxstBinds.system) {
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.overview));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.powermenu));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.config));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.lockscreen));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.tools));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.screenshot));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.screenrecord));
-                payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.lens));
-                if (previousAmbxstBinds.system.reload) payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.reload));
-                if (previousAmbxstBinds.system.quit) payload.unbinds.push(makeUnbindTarget(previousAmbxstBinds.system.quit));
+            // Unbind previous matrix system keybinds
+            if (previousMatrixBinds.system) {
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.overview));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.powermenu));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.config));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.lockscreen));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.tools));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.screenshot));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.screenrecord));
+                payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.lens));
+                if (previousMatrixBinds.system.reload) payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.reload));
+                if (previousMatrixBinds.system.quit) payload.unbinds.push(makeUnbindTarget(previousMatrixBinds.system.quit));
             }
 
             // Unbind previous custom keybinds
@@ -202,26 +202,26 @@ QtObject {
         }
 
         // Process core keybinds.
-        const ambxst = Config.keybindsLoader.adapter.ambxst;
+        const matrix = Config.keybindsLoader.adapter.matrix;
 
         // Unbind current core keybinds (ensures clean state before rebinding)
-        payload.unbinds.push(makeUnbindTarget(ambxst.launcher));
-        payload.unbinds.push(makeUnbindTarget(ambxst.dashboard));
-        payload.unbinds.push(makeUnbindTarget(ambxst.assistant));
-        payload.unbinds.push(makeUnbindTarget(ambxst.clipboard));
-        payload.unbinds.push(makeUnbindTarget(ambxst.emoji));
-        payload.unbinds.push(makeUnbindTarget(ambxst.notes));
-        payload.unbinds.push(makeUnbindTarget(ambxst.tmux));
-        payload.unbinds.push(makeUnbindTarget(ambxst.wallpapers));
+        payload.unbinds.push(makeUnbindTarget(matrix.launcher));
+        payload.unbinds.push(makeUnbindTarget(matrix.dashboard));
+        payload.unbinds.push(makeUnbindTarget(matrix.assistant));
+        payload.unbinds.push(makeUnbindTarget(matrix.clipboard));
+        payload.unbinds.push(makeUnbindTarget(matrix.emoji));
+        payload.unbinds.push(makeUnbindTarget(matrix.notes));
+        payload.unbinds.push(makeUnbindTarget(matrix.tmux));
+        payload.unbinds.push(makeUnbindTarget(matrix.wallpapers));
 
         // Bind current core keybinds
-        [ambxst.launcher, ambxst.dashboard, ambxst.assistant, ambxst.clipboard, ambxst.emoji, ambxst.notes, ambxst.tmux, ambxst.wallpapers].forEach(bind => {
+        [matrix.launcher, matrix.dashboard, matrix.assistant, matrix.clipboard, matrix.emoji, matrix.notes, matrix.tmux, matrix.wallpapers].forEach(bind => {
             const resolved = makeBindFromCore(bind);
             if (resolved) payload.binds.push(resolved);
         });
 
         // System keybinds
-        const system = ambxst.system;
+        const system = matrix.system;
 
         // Unbind current system keybinds
         payload.unbinds.push(makeUnbindTarget(system.overview));

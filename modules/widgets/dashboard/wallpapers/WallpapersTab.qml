@@ -73,11 +73,11 @@ Rectangle {
             wm.setWallpaperByIndex(Math.floor(Math.random() * n));
     }
     function pickWallpaperDir() {
-        dirPicker.command = ["/home/calvin/.local/bin/ambxst-pick", "dir", (wm ? wm.wallpaperDir : ""), "Wallpaper folder"];
+        dirPicker.command = ["/home/calvin/.local/bin/matrix-pick", "dir", (wm ? wm.wallpaperDir : ""), "Wallpaper folder"];
         dirPicker.running = true;
     }
 
-    // Folder chooser via the unified ambxst-pick wrapper: floats by itself and
+    // Folder chooser via the unified matrix-pick wrapper: floats by itself and
     // respects the yad/yazi preference; prints the chosen path on stdout.
     Process {
         id: dirPicker

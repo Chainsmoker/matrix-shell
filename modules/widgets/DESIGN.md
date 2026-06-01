@@ -1,6 +1,6 @@
 # widgets/ — Design System & Patterns
 
-Guía de diseño para los widgets de Ambxst (dock, sidebar, panels, popups). Establece
+Guía de diseño para los widgets de Matrix (dock, sidebar, panels, popups). Establece
 el lenguaje visual, patrones de QML reutilizables y anti-patterns descubiertos
 al construir el RightDock con 4 tabs creativos (calendar, weather, pomodoro,
 color picker).

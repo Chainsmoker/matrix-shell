@@ -14,7 +14,7 @@ Singleton {
     property string text: ""
     property bool ready: false
     property int revision: 0
-    readonly property string outDir: "/tmp/ambxst-qr"
+    readonly property string outDir: "/tmp/matrix-qr"
     readonly property string outPath: outDir + "/qr.png"
 
     function generate() {

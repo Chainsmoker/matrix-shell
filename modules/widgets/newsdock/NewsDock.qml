@@ -26,7 +26,7 @@ PanelWindow {
 
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
-    WlrLayershell.namespace: "ambxst:newsdock"
+    WlrLayershell.namespace: "matrix:newsdock"
     exclusionMode: ExclusionMode.Ignore
 
     readonly property bool isOpen: GlobalStates.newsPanelOpen

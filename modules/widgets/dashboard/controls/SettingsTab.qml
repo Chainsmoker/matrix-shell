@@ -255,8 +255,8 @@ Rectangle {
             isIcon: true
         },
         {
-            icon: Qt.resolvedUrl("../../../../assets/ambxst/ambxst-icon.svg"),
-            label: "Ambxst",
+            icon: Qt.resolvedUrl("../../../../assets/matrix/matrix-icon.svg"),
+            label: Config.brandName,
             section: 9,
             isIcon: false
         }
