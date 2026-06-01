@@ -52,9 +52,9 @@ Item {
     StyledRect {
         id: buttonBg
         variant: root.popupOpen ? "primary" : "bg"
-        glossy: true
+        glossy: false
         fillColor: "transparent"
-        item: Colors.overBackground
+        item: root.popupOpen ? Colors.overBackground : Colors.primary
         anchors.fill: parent
         enableShadow: root.layerEnabled
 

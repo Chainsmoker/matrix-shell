@@ -6,7 +6,7 @@ import qs.modules.components
 
     StyledRect {
     variant: "bg"
-    glossy: true
+    glossy: false
     // Fondo negro como los iconos de la izquierda (variant "bg" = background).
     fillColor: "transparent"
     id: root

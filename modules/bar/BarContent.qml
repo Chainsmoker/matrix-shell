@@ -599,9 +599,9 @@ Item {
 
                         PresetsButton {
                             id: presetsButton
-                            glossy: true
+                            glossy: false
                             fillColor: "transparent"
-                            contentColor: Colors.overBackground
+                            contentColor: Colors.primary
                             startRadius: root.dockAtEnd ? root.innerRadius : root.outerRadius
                             endRadius: root.innerRadius
                             enableShadow: root.shadowsEnabled
@@ -609,9 +609,9 @@ Item {
 
                         ToolsButton {
                             id: toolsButton
-                            glossy: true
+                            glossy: false
                             fillColor: "transparent"
-                            contentColor: Colors.overBackground
+                            contentColor: Colors.primary
                             startRadius: root.innerRadius
                             endRadius: root.innerRadius
                             enableShadow: root.shadowsEnabled
@@ -650,9 +650,9 @@ Item {
 
                         PowerButton {
                             id: powerButton
-                            glossy: true
+                            glossy: false
                             fillColor: "transparent"
-                            contentColor: Colors.overBackground
+                            contentColor: Colors.primary
                             startRadius: root.innerRadius
                             endRadius: root.outerRadius
                             enableShadow: root.shadowsEnabled
