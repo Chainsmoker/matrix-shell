@@ -2256,7 +2256,7 @@ PanelWindow {
                                 }
                                 StyledToolTip {
                                     show: eyedropMouse.containsMouse
-                                    tooltipText: "Pick color from screen (grim+slurp)"
+                                    tooltipText: "Pick color from screen (hyprpicker)"
                                 }
                             }
 
@@ -2406,14 +2406,17 @@ PanelWindow {
                         }
                     }
 
-                    // Eyedropper: grim+slurp captura pixel y devuelve hex
+                    // Eyedropper: hyprpicker (preciso, magnifica el pixel). Fallback a
+                    // grim+slurp si hyprpicker no está instalado.
                     Process {
                         id: eyedropProc
                         command: ["sh", "-c",
-                            "grim -g \"$(slurp -p)\" -t ppm - | tail -c 3 | hexdump -e '\"#%02X%02X%02X\"'"]
+                            "if command -v hyprpicker >/dev/null 2>&1; then hyprpicker -f hex; else grim -g \"$(slurp -p)\" -t ppm - | tail -c 3 | hexdump -e '\"#%02X%02X%02X\"'; fi"]
                         stdout: StdioCollector {
                             onStreamFinished: {
                                 var hex = this.text.trim();
+                                if (hex.length > 0 && hex.charAt(0) !== "#")
+                                    hex = "#" + hex;
                                 if (hex.match(/^#[0-9A-F]{6}$/i)) {
                                     hsvPicker.setFromHex(hex);
                                 }
